@@ -54,8 +54,12 @@ def run(
     for path, _, im0s, vid_cap, _ in dataset:
 
         # 获得文件名字和后缀
-        filename = Path(path).stem
-        suffix = Path(path).suffix
+        if dataset.mode == 'stream':
+            filename = path[0]
+            suffix = 'mp4'
+        else:
+            filename = Path(path).stem
+            suffix = Path(path).suffix
 
         # 获得原始图片
         im0 = im0s[0] if dataset.mode == 'stream' else im0s
