@@ -53,21 +53,23 @@ def run(
     videoWriter : cv2.VideoWriter = None
     for path, _, im0s, vid_cap, _ in dataset:
 
-        # 获得文件名字
-        filename = Path(path).name
+        # 获得文件名字和后缀
+        filename = Path(path).stem
+        suffix = Path(path).suffix
 
         # 获得原始图片
         im0 = im0s[0] if dataset.mode == 'stream' else im0s
+        img = im0.copy()
 
         # 注释器（画图器）
-        annotator = TargetsAnnotator(im0, line_thickness)
+        annotator = TargetsAnnotator(img, line_thickness)
 
         # 检测人像
-        _, peopleXyxyBoxes, crops, confs = test.detectorSingleImg(im0, classes=[0])
+        _, peopleXyxyBoxes, crops, confs = test.detectorSingleImg(img, classes=[0])
         if(len(peopleXyxyBoxes) > 0):
 
             # 根据人像检测骨骼结点
-            poses = poseTest.process(path, im0, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+            poses = poseTest.process(path, img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
             # 对每个人像进行手机检测和动作检测
             handsIndex = poseTest.getHandIndex() # 获得该骨骼结点格式的手部结点编号
@@ -88,7 +90,7 @@ def run(
                     continue
 
                 # 手机检测
-                _, phoneXyxyBoxes,_, _ = phoneTest.detectorSingleImg(crop, classes=[0])
+                _, phoneXyxyBoxes,_, _ = phoneTest.detectorSingleImg(crop, classes=[0], conf_thres=0.4)
                 if(len(phoneXyxyBoxes)):   # 人像图中存在手机
                     phoneCenters = getBoxCenters(phoneXyxyBoxes)
                     for j, pc in enumerate(phoneCenters):  # 对于每个手机，是否与人手重合
@@ -96,13 +98,14 @@ def run(
                             if twoPointsSuperpose(pc, hc, crop.shape): # 重合则开始验证动作
                                 peopleBox = peopleXyxyBoxes[i]
                                 if save_crop:
-                                    cropPath = increment_path(Path(saveDir, 'crop').joinpath(filename))
+                                    cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
                                     save_one_box(peopleBox, im0, file=cropPath, BGR=True)
                                 annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
                                 annotator.double_box_label(peopleBox, phoneXyxyBoxes[j], label='phone', color=colors(5))
                                 break
 
         img = annotator.result()
+        filename = filename + '.' + suffix
         # save image/video
         if save:
             savePath = saveDir.joinpath(filename)
