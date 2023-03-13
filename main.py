@@ -8,8 +8,7 @@ from libs.yolov5.utils.plots import colors, save_one_box
 from libs.yolov5.utils.general import check_requirements, increment_path, print_args
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer
 from libs.st_gcn.StgcnApi import ActionEstimation
-
-
+from PointsUtils import getBoxCenters
 
 
 def run(
@@ -73,15 +72,11 @@ def run(
         if(len(peopleXyxyBoxes) > 0):
 
             # 根据人像检测骨骼结点
-            poses = poseTest.process(path, img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+            poses = poseTest.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
             # 对每个人像进行手机检测和动作检测
-            handsIndex = poseTest.getHandIndex() # 获得该骨骼结点格式的手部结点编号
-            earsIndex = poseTest.getEarIndex()  # 获得该骨骼结点格式的耳朵结点编号
             for i,crop in enumerate(crops): #   对于每个人像
                 keypoints = poses[i]['keypoints'] # 获得此人的骨骼结点
-                handCenters = [keypoints[handsIndex[0]], keypoints[handsIndex[1]]] # 获得手部结点
-                earCenters = [keypoints[earsIndex[0]], keypoints[earsIndex[1]]]
                 scores = poses[i]['kp_score'] # 获得此人的骨骼结点置信度
                 
                 # 动作检测
@@ -89,7 +84,7 @@ def run(
                 keypoints = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(keypoints, [17, 2])
                 scores = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(scores, [17, 1])
                 box = poses[i]['bbox'] # 每个人像的xywhBox
-                actionName = ae.predict(keypoints, scores, (box[2], box[3]))
+                actionName = ae.predictSingleCap(keypoints, scores, (box[2], box[3]))
                 if(actionName != 'Walking'):
                     continue
 
@@ -98,15 +93,13 @@ def run(
                 if(len(phoneXyxyBoxes)):   # 人像图中存在手机
                     phoneCenters = getBoxCenters(phoneXyxyBoxes)
                     for j, pc in enumerate(phoneCenters):  # 对于每个手机，是否与人手重合
-                        for hc in handCenters:
-                            if twoPointsSuperpose(pc, hc, crop.shape): # 重合则开始验证动作
-                                peopleBox = peopleXyxyBoxes[i]
-                                if save_crop:
-                                    cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
-                                    save_one_box(peopleBox, im0, file=cropPath, BGR=True)
-                                annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
-                                annotator.double_box_label(peopleBox, phoneXyxyBoxes[j], label='phone', color=colors(5))
-                                break
+                        peopleBox = peopleXyxyBoxes[i]
+                        if save_crop:
+                            cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
+                            save_one_box(peopleBox, im0, file=cropPath, BGR=True)
+                        annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
+                        annotator.double_box_label(peopleBox, phoneXyxyBoxes[j], label='phone', color=colors(5))
+                        break
 
         img = annotator.result()
         filename = filename + '.' + suffix
