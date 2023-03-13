@@ -31,7 +31,6 @@ class AlphaposeDataTransformer():
     @staticmethod
     def heatmap2Pose(
         image, # BGR
-        imageName,
         boxes,  # xyxy
         cropped_boxes,  # xywh
         scores,
@@ -150,7 +149,6 @@ class AlphaposeDataTransformer():
     
 
 
-
 # process single single-human image
 class SingleImagePoseEstimation():
 
@@ -175,13 +173,11 @@ class SingleImagePoseEstimation():
 
     def process(
         self, 
-        imgName, 
         image, # BGR
         boxes, 
         confs, 
         flipFlag=False
     ):
-        try:
         with torch.no_grad():
             assert(image is not None)
             # pre process cropped human image for pose estimation
@@ -204,7 +200,6 @@ class SingleImagePoseEstimation():
             # transform heatmap data to pose data
             poses = AlphaposeDataTransformer.heatmap2Pose(
                 image,
-                    imgName, 
                 torch.FloatTensor(boxes), 
                 torch.FloatTensor(cropped_boxes), 
                 torch.FloatTensor(confs), 
