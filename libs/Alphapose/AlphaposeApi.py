@@ -22,6 +22,7 @@ from alphapose.utils.transforms import flip, flip_heatmap
 from alphapose.models import builder
 from alphapose.utils.config import update_config
 from alphapose.utils.vis import getTime
+from libs.yolov5.utils.torch_utils import select_device
 
 
 class AlphaposeDataTransformer():
@@ -156,7 +157,8 @@ class SingleImagePoseEstimation():
 
         cfg = update_config(configFilePath)
         self.cfg = cfg
-        device = torch.device("cuda:" + str(device) if device >= 0 else "cpu")
+        # device = torch.device("cuda:" + str(device) if device >= 0 else "cpu")
+        device = select_device(device)
         self.device = device
         self.pose_dataset = builder.retrieve_dataset(cfg.DATASET.TRAIN)
         self.poseType = cfg.DATASET.TRAIN.TYPE

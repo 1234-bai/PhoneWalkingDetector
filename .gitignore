@@ -1,5 +1,8 @@
 # datasets
-/images
+images/
+
+# run result
+runs/
 
 # models
 *.pth

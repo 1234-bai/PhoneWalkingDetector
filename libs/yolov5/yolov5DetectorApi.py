@@ -1,6 +1,5 @@
 # YOLOv5 APIs 🚀 by QianXmY, GPL-3.0 license
 
-import os
 import sys
 from pathlib import Path
 import numpy as np
@@ -14,10 +13,9 @@ if str(ROOT) not in sys.path:
 
 from models.common import DetectMultiBackend
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
-from utils.general import (LOGGER, Profile, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
-                           increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
-from utils.plots import Annotator, colors, save_one_box
-from utils.torch_utils import select_device, smart_inference_mode
+from utils.general import (LOGGER, Profile, check_file, check_img_size, non_max_suppression, scale_boxes)
+from utils.plots import Annotator, save_one_box
+from utils.torch_utils import select_device
 from utils.augmentations import letterbox
 
 
@@ -30,7 +28,7 @@ class TargetsDecetor:
             imgsz=(640, 640),  # inference size (height, width)
             dnn=False,  # use OpenCV DNN for ONNX inference
             half=False,  # use FP16 half-precision inference
-            device=''  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+            device=0  # cuda device, i.e. 0 or 0,1,2,3 or cpu
     ) -> None:
         # Load model
         device = select_device(device)
