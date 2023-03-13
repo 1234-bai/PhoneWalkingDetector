@@ -23,6 +23,7 @@ from alphapose.models import builder
 from alphapose.utils.config import update_config
 from alphapose.utils.vis import getTime
 from libs.yolov5.utils.torch_utils import select_device
+from PointsUtils import twoPointsSuperpose
 
 
 class AlphaposeDataTransformer():
@@ -146,8 +147,8 @@ class AlphaposeDataTransformer():
             coco2017[[0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]]
         res[13] = (coco2017[5] + coco2017[6])/2.0
         return res.numpy()
-
     
+
 
 
 # process single single-human image
@@ -158,19 +159,87 @@ class SingleImagePoseEstimation():
         cfg = update_config(configFilePath)
         self.cfg = cfg
         # device = torch.device("cuda:" + str(device) if device >= 0 else "cpu")
-        device = select_device(device)
-        self.device = device
+        self.device = select_device(device)
         self.pose_dataset = builder.retrieve_dataset(cfg.DATASET.TRAIN)
         self.poseType = cfg.DATASET.TRAIN.TYPE
 
         # Load pose model
         self.pose_model = builder.build_sppe(cfg.MODEL, preset_cfg=cfg.DATA_PRESET)
         print(f'Loading pose model from {checkpoint}...')
-        self.pose_model.load_state_dict(torch.load(checkpoint, map_location=device))
-        self.pose_model.to(device)
+        self.pose_model.load_state_dict(torch.load(checkpoint, map_location=self.device))
+        self.pose_model.to(self.device)
         self.pose_model.eval()
-        
-        # load image preprocess transormer
+       
+        self.__setTransformation()
+        self.__setVisThres()
+
+    def process(
+        self, 
+        imgName, 
+        image, # BGR
+        boxes, 
+        confs, 
+        flipFlag=False
+    ):
+        try:
+        with torch.no_grad():
+            assert(image is not None)
+            # pre process cropped human image for pose estimation
+            image = np.array(image, dtype=np.uint8)[:, :, ::-1] # image channel BGR->RGB
+            inps = torch.zeros(len(boxes), 3, *(self.transformation._input_size))
+            cropped_boxes = []
+            for i, box in enumerate(boxes):
+                inps[i], cropped_box = self.transformation.test_transform(image, box)
+                # cropped_boxes = torch.FloatTensor([cropped_box])
+                cropped_boxes.append(cropped_box)
+            # Pose Estimation
+            inps = inps.to(self.device)
+            if flipFlag:
+                inps = torch.cat((inps, flip(inps)))
+            hm = self.pose_model(inps)
+            if flipFlag:
+                hm_flip = flip_heatmap(hm[int(len(hm) / 2):], self.pose_dataset.joint_pairs, shift=True)
+                hm = (hm[0:int(len(hm) / 2)] + hm_flip) / 2
+                hm = hm.cpu()
+            # transform heatmap data to pose data
+            poses = AlphaposeDataTransformer.heatmap2Pose(
+                image,
+                    imgName, 
+                torch.FloatTensor(boxes), 
+                torch.FloatTensor(cropped_boxes), 
+                torch.FloatTensor(confs), 
+                torch.Tensor(torch.zeros(len(confs))), 
+                hm,
+                self.cfg.DATA_PRESET.NUM_JOINTS,
+                self.cfg.LOSS.get('NORM_TYPE', None),
+                self.cfg.DATA_PRESET.HEATMAP_SIZE,
+                self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss') == 'MSELoss',
+                get_func_heatmap_to_coord(self.cfg)
+            )
+        return poses
+
+    def __setVisThres(self):
+        # load profile of pose visualize profile
+        loss_type = self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss')
+        num_joints = self.cfg.DATA_PRESET.NUM_JOINTS
+        vis_thres = [0.4] * num_joints
+        if loss_type != 'MSELoss':
+            if 'JointRegression' in loss_type:
+                vis_thres = [0.05] * num_joints
+            elif loss_type == 'Combined':
+                if num_joints == 68:
+                    hand_face_num = 42
+                else:
+                    hand_face_num = 110
+                vis_thres = [0.4] * (num_joints - hand_face_num) + [0.05] * hand_face_num
+        self.__vis_thres__ = vis_thres
+
+    def getVisThres(self):
+        return self.__vis_thres__
+
+    def __setTransformation(self):
+         # load image preprocess transormer
+        cfg = self.cfg
         if cfg.DATA_PRESET.TYPE == 'simple':
             self.transformation = SimpleTransform(
                 self.pose_dataset, 
@@ -180,7 +249,7 @@ class SingleImagePoseEstimation():
                 rot=0, sigma=cfg.DATA_PRESET.SIGMA,
                 train=False, 
                 add_dpg=False, 
-                gpu_device=device)
+                gpu_device=self.device)
         elif cfg.DATA_PRESET.TYPE == 'simple_smpl':
             dummpy_set = edict({
                 'joint_pairs_17': None,
@@ -201,79 +270,10 @@ class SingleImagePoseEstimation():
                 sigma=cfg.MODEL.EXTRA.SIGMA,
                 train=False, 
                 add_dpg=False, 
-                gpu_device=device,
+                gpu_device=self.device,
                 loss_type=cfg.LOSS['TYPE']
             )
 
-        self.__setVisThres__()
-
-    def process(
-        self, 
-        imgName, 
-        image, # BGR
-        boxes, 
-        confs, 
-        flipFlag=False
-    ):
-        try:
-            with torch.no_grad():
-                assert(image is not None)
-                # pre process cropped human image for pose estimation
-                image = np.array(image, dtype=np.uint8)[:, :, ::-1] # image channel BGR->RGB
-                inps = torch.zeros(len(boxes), 3, *(self.transformation._input_size))
-                cropped_boxes = []
-                for i, box in enumerate(boxes):
-                    inps[i], cropped_box = self.transformation.test_transform(image, box)
-                    # cropped_boxes = torch.FloatTensor([cropped_box])
-                    cropped_boxes.append(cropped_box)
-                # Pose Estimation
-                inps = inps.to(self.device)
-                if flipFlag:
-                    inps = torch.cat((inps, flip(inps)))
-                hm = self.pose_model(inps)
-                if flipFlag:
-                    hm_flip = flip_heatmap(hm[int(len(hm) / 2):], self.pose_dataset.joint_pairs, shift=True)
-                    hm = (hm[0:int(len(hm) / 2)] + hm_flip) / 2
-                hm = hm.cpu()
-                # transform heatmap data to pose data
-                poses = AlphaposeDataTransformer.heatmap2Pose(
-                    image, 
-                    imgName, 
-                    torch.FloatTensor(boxes), 
-                    torch.FloatTensor(cropped_boxes), 
-                    torch.FloatTensor(confs), 
-                    torch.Tensor(torch.zeros(len(confs))), 
-                    hm,
-                    self.cfg.DATA_PRESET.NUM_JOINTS,
-                    self.cfg.LOSS.get('NORM_TYPE', None),
-                    self.cfg.DATA_PRESET.HEATMAP_SIZE,
-                    self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss') == 'MSELoss',
-                    get_func_heatmap_to_coord(self.cfg)
-                )
-            print('===========================> Finish Model Running.')
-        except KeyboardInterrupt:
-            print('===========================> Finish Model Running.')
-        return poses
-
-    def __setVisThres__(self):
-        # load profile of pose visualize profile
-        loss_type = self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss')
-        num_joints = self.cfg.DATA_PRESET.NUM_JOINTS
-        vis_thres = [0.4] * num_joints
-        if loss_type != 'MSELoss':
-            if 'JointRegression' in loss_type:
-                vis_thres = [0.05] * num_joints
-            elif loss_type == 'Combined':
-                if num_joints == 68:
-                    hand_face_num = 42
-                else:
-                    hand_face_num = 110
-                vis_thres = [0.4] * (num_joints - hand_face_num) + [0.05] * hand_face_num
-        self.__vis_thres__ = vis_thres
-
-    def getVisThres(self):
-        return self.__vis_thres__
-    
 
     def getHandIndex(self):
         if(self.poseType == 'Mscoco'):

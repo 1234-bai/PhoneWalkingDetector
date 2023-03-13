@@ -36,8 +36,8 @@ class ActionEstimation():
         self.model.eval()
         
     
-    def predict(self, keypoints, kp_scores, image_size):
-        """Predict actions from single person skeleton points and score in time sequence.
+    def predictSingleCap(self, keypoints, kp_scores, image_size):
+        """Predict actions from single person skeleton points and score in a cap.
         Args:
             keypoints: (numpy) points in shape `(v, c)` where
                 v : number of graph node (body parts).,
@@ -53,15 +53,42 @@ class ActionEstimation():
 
         pts[:, :2] = normalize_points_with_size(pts[:, :2], image_size[0], image_size[1])
         pts[:, :2] = scale_pose(pts[:, :2])
+
         pts = torch.tensor(pts, dtype=torch.float32)
         pts = pts.permute(1, 0)[None, :, None, :] # N, C, T, V
         pts = pts.to(self.device)
-        mot = pts[:, :2, :, :]
-
+        mot = pts[:, :2, :, :] - pts[:, :2, :, :]
 
         out = self.model((pts, mot))
         out = out.detach().cpu().numpy()
         return self.class_names[out[0].argmax()]
+    
+    def predict(self, pts, image_size):
+        """Predict actions from single person skeleton points and score in time sequence.
+        Args:
+            pts: (numpy array) points and score in shape `(t, v, c)` where
+                t : inputs sequence (time steps).,
+                v : number of graph node (body parts).,
+                c : channel (x, y, score).,
+            image_size: (tuple of int) width, height of image frame.
+        Returns:
+            (numpy array) Probability of each class actions.
+        """
+        print(pts.shape)
+        pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
+        pts[:, :, :2] = scale_pose(pts[:, :, :2])
+
+        pts = torch.tensor(pts, dtype=torch.float32)
+        pts = pts.permute(2, 0, 1)[None, :]
+
+        mot = pts[:, :2, 1:, :] - pts[:, :2, :-1, :]    #关键点移动状态
+        mot = mot.to(self.device)
+        pts = pts.to(self.device)
+
+        out = self.model((pts, mot))
+        out = out.detach().cpu().numpy()
+        return self.class_names[out[0].argmax()]
+
 
     def getLabel(self, num_class):
         assert(num_class >= 0 and num_class < self.count_class)

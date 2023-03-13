@@ -9,7 +9,7 @@ from libs.yolov5.utils.general import check_requirements, increment_path, print_
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer
 from libs.st_gcn.StgcnApi import ActionEstimation
 
-from MathUtils import twoPointsSuperpose, getBoxCenters
+
 
 
 def run(
@@ -116,10 +116,7 @@ def run(
             if dataset.mode == 'image':
                 cv2.imwrite(savePath, img)
             else:   # stream or vedio
-                if filename == preFilename: # 是前一个视频的下一帧
-                    assert(videoWriter != None)
-                    videoWriter.write(img)
-                else:   # 是一个新的视频或者第一个视频
+                if filename != preFilename: # 是一个新的视频或者第一个视频
                     preFilename = filename
                     if videoWriter is not None:
                         videoWriter.release() # release previous video writer
@@ -131,6 +128,9 @@ def run(
                     else:   # stream
                         fps, w, h = 30, im0.shape[1], im0.shape[0]
                     videoWriter = cv2.VideoWriter(str(savePath), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                assert(videoWriter != None)
+                videoWriter.write(img) # 是前一个视频的下一帧
+
         # view image
         if view_img:  
             cv2.imshow(filename, img)  

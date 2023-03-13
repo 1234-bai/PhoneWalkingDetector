@@ -18,3 +18,11 @@ def getBoxCenters(boxes):
         ),
         axis=1
     )
+
+def pt2bbox(kpt, ex=20):
+    """Get bbox that hold on all of the points (x,y)
+    kpt: array of shape `(N, 2)`,
+    ex: (int) expand bounding box,
+    """
+    return np.array((kpt[:, 0].min() - ex, kpt[:, 1].min() - ex,
+                     kpt[:, 0].max() + ex, kpt[:, 1].max() + ex))

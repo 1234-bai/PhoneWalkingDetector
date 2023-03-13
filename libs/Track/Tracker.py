@@ -25,8 +25,8 @@ class Detection(object):
 
     Args:
         tlbr: (float array) Of shape [top, left, bottom, right].,
-        keypoints: (float array) Of shape [node, pts].,
-        confidence: (float) Confidence score of detection.
+        keypoints: (float array) Of shape (node * 3). item is [x, y, confidence],
+        confidence: (float) mean onfidence score of detection.
     """
     def __init__(self, tlbr, keypoints, confidence):
         self.tlbr = tlbr
