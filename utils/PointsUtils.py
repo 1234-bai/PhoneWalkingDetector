@@ -26,3 +26,16 @@ def pt2bbox(kpt, ex=20):
     """
     return np.array((kpt[:, 0].min() - ex, kpt[:, 1].min() - ex,
                      kpt[:, 0].max() + ex, kpt[:, 1].max() + ex))
+
+
+def normalize_points_with_size(xy, width, height, flip=False):
+    """Normalize scale points in image with size of image to (0-1).
+    xy : (frames, parts, xy) or (parts, xy)
+    """
+    if xy.ndim == 2:
+        xy = np.expand_dims(xy, 0)
+    xy[:, :, 0] /= width
+    xy[:, :, 1] /= height
+    if flip:
+        xy[:, :, 0] = 1 - xy[:, :, 0]
+    return xy
