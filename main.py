@@ -8,7 +8,7 @@ from libs.yolov5.utils.general import check_requirements, increment_path, print_
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation
 from _utils.PointsUtils import getBoxCenters
-from _utils.PoseTransfromer import coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO
+from _utils.PoseTransformer import coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO
 
 
 def run(
