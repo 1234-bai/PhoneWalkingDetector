@@ -1,4 +1,7 @@
 import torch
+import json
+from pathlib import Path
+import os
 
 class PoseDataTransformer():
 
@@ -26,4 +29,24 @@ class PoseDataTransformer():
     
     @staticmethod
     def alphaose2kineticsFormat(poses):
-        pass
+        skeleton = []
+        for pose in poses:
+            kp = torch.cat([x for x in pose['keypoints']], dim=0).tolist()
+            skeleton.append({
+                'pose': kp,
+                'score': [x[0] for x in pose['kp_score'].tolist()]
+            })
+        return skeleton
+    
+    def writeJson(dict, jsonPath : Path, filename):
+        if not jsonPath.exists(): jsonPath.mkdir(parents=True)
+        with (jsonPath / filename).open('w') as f:
+            json.dump(dict, f)
+
+    def readJson(jsonFilename : Path):
+        if os.path.getsize(jsonFilename) :
+            with jsonFilename.open('r') as f:
+                dict = json.load(f)
+        else:
+            dict = {}
+        return dict

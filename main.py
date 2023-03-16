@@ -1,14 +1,14 @@
 import argparse
-import numpy as np
 import cv2
 from pathlib import Path
 
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
 from libs.yolov5.utils.plots import colors, save_one_box
 from libs.yolov5.utils.general import check_requirements, increment_path, print_args
-from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer
+from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation
-from PointsUtils import getBoxCenters
+from _utils.PointsUtils import getBoxCenters
+from _utils.PoseTransfromer import PoseDataTransformer as PT
 
 
 def run(
@@ -61,7 +61,7 @@ def run(
             suffix = Path(path).suffix
 
         # 获得原始图片
-        im0 = im0s[0] if dataset.mode == 'stream' else im0s
+        im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
         img = im0.copy()
 
         # 注释器（画图器）
@@ -81,8 +81,8 @@ def run(
                 
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                keypoints = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(keypoints, [17, 2])
-                scores = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(scores, [17, 1])
+                keypoints = PT.coco2017Keypoints2CocoCut(keypoints, [17, 2])
+                scores = PT.coco2017Keypoints2CocoCut(scores, [17, 1])
                 box = poses[i]['bbox'] # 每个人像的xywhBox
                 actionName = ae.predictSingleCap(keypoints, scores, (box[2], box[3]))
                 if(actionName != 'Walking'):
@@ -94,12 +94,13 @@ def run(
                     phoneCenters = getBoxCenters(phoneXyxyBoxes)
                     for j, pc in enumerate(phoneCenters):  # 对于每个手机，是否与人手重合
                         peopleBox = peopleXyxyBoxes[i]
-                        if save_crop:
-                            cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
-                            save_one_box(peopleBox, im0, file=cropPath, BGR=True)
-                        annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
-                        annotator.double_box_label(peopleBox, phoneXyxyBoxes[j], label='phone', color=colors(5))
-                        break
+                        if(poseTest.pointSuperposedBody(poses[i], pc, 'hand')):
+                            if save_crop:
+                                cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
+                                save_one_box(peopleBox, im0, file=cropPath, BGR=True)
+                            annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
+                            annotator.double_box_label(peopleBox, phoneXyxyBoxes[j], label='phone', color=colors(5))
+                            break
 
         img = annotator.result()
         filename = filename + '.' + suffix
