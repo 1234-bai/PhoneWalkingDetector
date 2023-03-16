@@ -6,12 +6,12 @@ import os
 
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from _utils.PoseTransfromer import PoseDataTransformer as PT
+from _utils.PoseTransfromer import writeJson, readJson, alphaose2kineticsFormat
 
 def jsonPosePack(poses, label_index, label_name):
     data = [{
         "frame_index" : 1,
-        "skeleton" : PT.alphaose2kineticsFormat(poses)
+        "skeleton" : alphaose2kineticsFormat(poses)
     }] if poses is not None and len(poses) > 0 else []
     return {
         "data" : data,
@@ -21,7 +21,7 @@ def jsonPosePack(poses, label_index, label_name):
 
 def writePoseJson(poses, label_index, label_name, jsonPath : Path, filename):
     poseDict = jsonPosePack(poses, label_index, label_name)
-    PT.writeJson(poseDict, jsonPath, filename)
+    writeJson(poseDict, jsonPath, filename)
 
 
 input_dir = Path('D:\\QianXiaoYi\\Pictures\\Data\\train_with_anoations\\0_phone\\images')
@@ -33,8 +33,8 @@ output_val_json = 'kinetics_val_label.json'
 
 trainThres = int(0.8 * len(os.listdir(input_dir)))
 print(trainThres)
-outTrainSumJson = PT.readJson(output_dir / output_train_json)
-outValSumJson = PT.readJson(output_dir / output_val_json)
+outTrainSumJson = readJson(output_dir / output_train_json)
+outValSumJson = readJson(output_dir / output_val_json)
 label_names = ['Call', 'Play', 'Hold', 'other']
 
 peopleDec =  TargetsDecetor(
@@ -77,8 +77,8 @@ for i, (path, _, im0s, vid_cap, s) in enumerate(dataset):
                     outValSumJson[filename] = imgDict
                 break
         # Path(path).unlink()
-PT.writeJson(outTrainSumJson, output_dir, output_train_json)
-PT.writeJson(outValSumJson, output_dir, output_val_json, ) 
+writeJson(outTrainSumJson, output_dir, output_train_json)
+writeJson(outValSumJson, output_dir, output_val_json, ) 
 
 # 固定随机数
 # 将分完的图片删除掉

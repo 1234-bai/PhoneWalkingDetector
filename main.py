@@ -8,7 +8,7 @@ from libs.yolov5.utils.general import check_requirements, increment_path, print_
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation
 from _utils.PointsUtils import getBoxCenters
-from _utils.PoseTransfromer import PoseDataTransformer as PT
+from _utils.PoseTransfromer import coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO
 
 
 def run(
@@ -81,8 +81,8 @@ def run(
                 
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                keypoints = PT.coco2017Keypoints2CocoCut(keypoints, [17, 2])
-                scores = PT.coco2017Keypoints2CocoCut(scores, [17, 1])
+                keypoints = cC(keypoints, [17, 2])
+                scores = cC(scores, [17, 1])
                 box = poses[i]['bbox'] # 每个人像的xywhBox
                 actionName = ae.predictSingleCap(keypoints, scores, (box[2], box[3]))
                 if(actionName != 'Walking'):
