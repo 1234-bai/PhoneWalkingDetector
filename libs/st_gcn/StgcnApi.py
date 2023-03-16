@@ -15,8 +15,8 @@ class ActionEstimation():
 
     def __init__(
         self,
-        weight_file = 'libs\st_gcn\model\stgcn_epoch50_model.pt',
-        class_names = ['Call', 'Play'],
+        weight_file = 'libs\st_gcn\model\epoch70_model.pt',
+        class_names = ['Other', 'Play', 'Call'],
         device='cuda'
     ):
         graph_args = {

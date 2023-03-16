@@ -22,7 +22,7 @@ def writeJson(dict, jsonPath : Path, filename):
 
 
 def readJson(jsonFilename : Path):
-    if os.path.getsize(jsonFilename) :
+    if jsonFilename.exists() and os.path.getsize(jsonFilename) :
         with jsonFilename.open('r') as f:
             dict = json.load(f)
     else:

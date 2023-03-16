@@ -1,5 +1,6 @@
 # datasets
 images/
+*.jpg
 
 # run result
 runs/
