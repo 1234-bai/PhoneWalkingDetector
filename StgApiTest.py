@@ -1,19 +1,26 @@
 import numpy as np
 import cv2
 
-from PointsUtils import pt2bbox
+from _utils.PointsUtils import pt2bbox
 from libs.Track.Tracker import Tracker, Detection
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
 from libs.yolov5.utils.plots import colors
-from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer
+from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 from libs.st_gcn.StgcnApi import ActionEstimation
+from _utils.PoseTransformer import halpe26_2_haplpe26 as Dt
 
 
-ae = ActionEstimation(weight_file='libs\st_gcn\model\st-gcn-tsstg-fail-model.pth')
+ae = ActionEstimation()
+
+# poseTest = SingleImagePoseEstimation(
+#     configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
+#     checkpoint='libs\\Alphapose\\pretrained_models\\fast_res50_256x192.pth',
+#     device=0
+# )
 
 poseTest = SingleImagePoseEstimation(
-    configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs\\Alphapose\\pretrained_models\\fast_res50_256x192.pth',
+    configFilePath='libs\\Alphapose\\configs\\halpe_26\\resnet\\256x192_res50_lr1e-3_1x.yaml',
+    checkpoint='libs\\Alphapose\\pretrained_models\\halpe26_fast_res50_256x192.pth',
     device=0
 )
 
@@ -26,7 +33,7 @@ dataset = test.loadData(source='data/images')
 tracker = None
 preFilename = ''
 for path, _, im0s, vid_cap, s in dataset:
-    if dataset.mode == 'image': continue
+
     # 获得文件名字
     filename = path[0] if dataset.mode == 'stream' else path
 
@@ -50,12 +57,11 @@ for path, _, im0s, vid_cap, s in dataset:
                 
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                keypoints = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(keypoints, [17, 2])
-                scores = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(scores, [17, 1])
-                box = poses[i]['bbox'] # 每个人像的xywhBox
-                actionName = ae.predictSingleCap(keypoints, scores, (box[2], box[3]))
+                keypoints = Dt(keypoints, [17, 2])
+                scores = Dt(scores, [17, 1])
+                actionName = ae.predictSingleCap(keypoints, scores, (im0.shape[:2][::-1]))
                 
-                annotator.box_label(peopleXyxyBoxes[i], label=actionName, color=colors(0))
+                annotator.box_label(peopleXyxyBoxes[i], label=str(actionName), color=colors(0))
         else:   # stream or vedio for tracker
             if preFilename != filename: # 新的视频或者第一个视频
                 # 旧的Tracker在tracker不指向它的时候，被Python垃圾回收机制自动回收
@@ -73,8 +79,10 @@ for path, _, im0s, vid_cap, s in dataset:
             # Create Detections object.
             detections = []
             for ps in poses:
-                kp = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(ps['keypoints'], [17, 2])
-                sc = AlphaposeDataTransformer.coco2017Keypoints2CocoCut(ps['kp_score'], [17, 1])
+                kp = Dt(ps['keypoints'], [17, 2])
+                sc = Dt(ps['kp_score'], [17, 1])
+                # kp = ps['keypoints']
+                # sc = ps['kp_score']
                 detections.append(
                     Detection(
                         pt2bbox(kp),
@@ -92,12 +100,13 @@ for path, _, im0s, vid_cap, s in dataset:
                 # Use 30 frames time-steps to prediction.
                 if len(track.keypoints_list) >= 10:
                     pts = np.array(track.keypoints_list, dtype=np.float32)
-                    actionName = ae.predict(pts, im0.shape[:2])
-                if actionName == 'Walking':
-                    annotator.box_label(bbox, actionName)
+                    actionName = str(ae.predict(pts, im0.shape[:2]))
+                # if actionName == 'Walking':
+                annotator.box_label(bbox, actionName)
 
 
     img = annotator.result()
+    img = ADt.viewpPoseInImage(img, poses, poseTest.getVisThres())
     cv2.imshow(str(path), img)
     if cv2.waitKey(0) & 0xFF == ord('q'):
         break

@@ -2,8 +2,7 @@ import os
 import torch
 import numpy as np
 
-# from .net.tssg import TwoStreamSpatialTemporalGraph as Model
-from .net.st_gcn import Model
+from .net.tssg import TwoStreamSpatialTemporalGraph as Model
 
 
 class ActionEstimation():
@@ -13,24 +12,22 @@ class ActionEstimation():
         device: (str) Device to load the model on 'cpu' or 'cuda'.
     """
 
-    def __init__(
-        self,
-        weight_file = 'libs\st_gcn\model\stgcn_epoch50_model.pt',
-        class_names = ['Call', 'Play'],
+    def __init__(self,
+        weight_file = 'libs\st_gcn\model\st-gcn-tsstg-fail-model.pth',
+        class_names = ['Standing', 'Walking', 'Sitting', 'Lying Down',
+                            'Stand up', 'Sit down', 'Fall Down'],
         device='cuda'
     ):
         graph_args = {
             'strategy': 'spatial',
-            # 'layout': 'openpose',
-            'layout': 'halpe_26',
+            'layout' : 'coco_cut',
         }
-        in_channels = 3
         self.count_class = len(class_names)
         edge_importance_weighting = True
         self.device = device
         self.class_names = class_names
 
-        self.model = Model(in_channels, self.count_class, graph_args, edge_importance_weighting).to(device)
+        self.model = Model(graph_args, self.count_class, edge_importance_weighting).to(device)
         self.model.load_state_dict(torch.load(weight_file))
         self.model.eval()
         
@@ -54,11 +51,11 @@ class ActionEstimation():
         pts[:, :2] = scale_pose(pts[:, :2])
 
         pts = torch.tensor(pts, dtype=torch.float32)
-        pts = pts.permute(1, 0)[None, :, None, :, None] # N, C, T, V, M
+        pts = pts.permute(1, 0)[None, :, None, :] # N, C, T, V
         pts = pts.to(self.device)
+        mot = pts[:, :2, :, :] - pts[:, :2, :, :]
 
-
-        out = self.model(pts)
+        out = self.model((pts, mot))
         out = out.detach().cpu().numpy()
         print(out[0])
         return out[0].argmax()
@@ -78,11 +75,13 @@ class ActionEstimation():
         pts[:, :, :2] = scale_pose(pts[:, :, :2])
 
         pts = torch.tensor(pts, dtype=torch.float32)
-        pts = pts.permute(2, 0, 1)[None, :, :, :, None] # N,C,T,V,M
+        pts = pts.permute(2, 0, 1)[None, :, :, :]
 
+        mot = pts[:, :2, 1:, :] - pts[:, :2, :-1, :]    #关键点移动状态
+        mot = mot.to(self.device)
         pts = pts.to(self.device)
 
-        out = self.model(pts)
+        out = self.model((pts, mot))
         out = out.detach().cpu().numpy()
         print(out)
         return out[0].argmax()
