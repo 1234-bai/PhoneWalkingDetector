@@ -9,9 +9,9 @@ import numpy as np
 from pathlib import Path
 from easydict import EasyDict as edict
 
-
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # Alphapose root directory
+print(f"alphapose:{ROOT}")
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
@@ -23,28 +23,31 @@ from alphapose.models import builder
 from alphapose.utils.config import update_config
 from alphapose.utils.vis import getTime
 from libs.yolov5.utils.torch_utils import select_device
-from PointsUtils import twoPointsSuperpose
+from _utils.PointsUtils import twoPointsSuperpose
 
 
 class AlphaposeDataTransformer():
 
     @staticmethod
     def heatmap2Pose(
-        image, # BGR
+        imagesz,   # width, height
         boxes,  # xyxy
         cropped_boxes,  # xywh
         scores,
         ids,
         hm,
         numJoints,
-        norm_type,
+        norm_type,# 激活函数类型
         hm_size,
         use_heatmap_loss,
         heatmap_to_coord,
+        normalizeCoord = False, # 坐标是否归一化
         min_box_area=0, # min box area to filter out
     ):
 
-        assert(image is not None and len(image) != 0)
+        if normalizeCoord:
+            imagesz = torch.tensor(imagesz)
+            assert(imagesz.shape == torch.Size([2]))
         assert(boxes is not None and len(boxes) != 0)
         # location prediction (n, kp, 2) | score prediction (n, kp, 1)
         assert hm.dim() == 4
@@ -81,7 +84,7 @@ class AlphaposeDataTransformer():
         _result = []
         for k in range(len(scores)):
             _result.append({
-                'keypoints':preds_img[k],
+                'keypoints':preds_img[k]/imagesz if normalizeCoord else preds_img[k],
                 'kp_score':preds_scores[k],
                 'proposal_score': torch.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),
                 'idx':ids[k],
@@ -112,40 +115,6 @@ class AlphaposeDataTransformer():
             'showbox':showbox,  
         })
         return vis_frame(image, pose, opt, vis_threshold)
-        
-    @staticmethod
-    def writeJson(
-        pose, 
-        outputpath, 
-        form='coco', 
-        for_eval=False
-    ):
-        from alphapose.utils.pPose_nms import write_json
-        write_json(pose, outputpath, form=form, for_eval=for_eval)
-        print("Results have been written to json.")
-
-
-    # coco2017format skeleton to openposeCocoFormat skeleton
-    @staticmethod
-    def coco2017Keypoints2openposeCoco(coco2017, inputSize=[17, 3]):
-        # refer to : 
-        # https://github.com/jin-s13/COCO-WholeBody, 
-        # https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/02_output.md#body-keypoint-ordering-in-c-python
-        coco2017 = torch.FloatTensor(coco2017)
-        res = torch.zeros(18, *(inputSize[1::]))
-        res[[0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]] = \
-            coco2017[[0, 6, 8, 10, 5, 7, 9, 12, 14, 16, 11, 13, 15, 2, 1, 4, 3]]
-        res[1] = (coco2017[5] + coco2017[6])/2.0
-        return res.numpy()
-    
-    @staticmethod
-    def coco2017Keypoints2CocoCut(coco2017, inputSize=[17, 3]):
-        coco2017 = torch.FloatTensor(coco2017)
-        res = torch.zeros(14, *(inputSize[1::]))
-        res[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]] = \
-            coco2017[[0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]]
-        res[13] = (coco2017[5] + coco2017[6])/2.0
-        return res.numpy()
     
 
 
@@ -173,9 +142,10 @@ class SingleImagePoseEstimation():
 
     def process(
         self, 
-        image, # BGR
+        image, # HWC, BGR
         boxes, 
         confs, 
+        normalizelCrood = False,
         flipFlag=False
     ):
         with torch.no_grad():
@@ -199,7 +169,7 @@ class SingleImagePoseEstimation():
                 hm = hm.cpu()
             # transform heatmap data to pose data
             poses = AlphaposeDataTransformer.heatmap2Pose(
-                image,
+                image.shape[:2][::-1], # tuple(H, W, C) -> tuple(W, H) 
                 torch.FloatTensor(boxes), 
                 torch.FloatTensor(cropped_boxes), 
                 torch.FloatTensor(confs), 
@@ -209,7 +179,8 @@ class SingleImagePoseEstimation():
                 self.cfg.LOSS.get('NORM_TYPE', None),
                 self.cfg.DATA_PRESET.HEATMAP_SIZE,
                 self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss') == 'MSELoss',
-                get_func_heatmap_to_coord(self.cfg)
+                get_func_heatmap_to_coord(self.cfg),
+                normalizeCoord=normalizelCrood
             )
         return poses
 
@@ -268,18 +239,3 @@ class SingleImagePoseEstimation():
                 gpu_device=self.device,
                 loss_type=cfg.LOSS['TYPE']
             )
-
-
-    def getHandIndex(self):
-        if(self.poseType == 'Mscoco'):
-            return [10, 11]
-        elif(self.poseType == 'Halpe_26'):
-            return [9, 10]
-        return [10, 11]
-    
-    def getEarIndex(self):
-        if(self.poseType == 'Mscoco'):
-            return [3, 4]
-        elif(self.poseType == 'Halpe_26'):
-            return [3, 4]
-        return [3, 4]
