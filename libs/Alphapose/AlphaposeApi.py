@@ -96,7 +96,7 @@ class AlphaposeDataTransformer():
     @staticmethod
     def viewpPoseInImage(
         image, # BGR
-        pose,
+        poses,
         vis_threshold,  # 可视阈值
         vis_fast = False,
         showbox=False, 
@@ -114,7 +114,7 @@ class AlphaposeDataTransformer():
             'tracking':tracking,
             'showbox':showbox,  
         })
-        return vis_frame(image, pose, opt, vis_threshold)
+        return vis_frame(image, poses, opt, vis_threshold)
     
 
 
