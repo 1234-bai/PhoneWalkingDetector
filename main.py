@@ -7,8 +7,8 @@ from libs.yolov5.utils.plots import colors, save_one_box
 from libs.yolov5.utils.general import check_requirements, increment_path, print_args
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation
-from _utils.PointsUtils import getBoxCenters
-from _utils.PoseTransformer import coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO
+from _utils.PointsUtils import getBoxCenters, twoPointsSuperpose
+from _utils.PoseTransformer import coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO, halpe26_2_haplpe26 as hh
 
 
 def run(
@@ -25,7 +25,7 @@ def run(
 
 ):
 
-    ae = ActionEstimation(weight_file='libs\st_gcn\model\st-gcn-tsstg-fail-model.pth')
+    ae = ActionEstimation(weight_file='libs\st_gcn\model\stgcn_epoch50_model.pt')
 
     poseTest = SingleImagePoseEstimation(
         configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
@@ -94,7 +94,7 @@ def run(
                     phoneCenters = getBoxCenters(phoneXyxyBoxes)
                     for j, pc in enumerate(phoneCenters):  # 对于每个手机，是否与人手重合
                         peopleBox = peopleXyxyBoxes[i]
-                        if(poseTest.pointSuperposedBody(poses[i], pc, 'hand')):
+                        if(twoPointsSuperpose(poses[i], pc, [1, 2])):
                             if save_crop:
                                 cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
                                 save_one_box(peopleBox, im0, file=cropPath, BGR=True)
