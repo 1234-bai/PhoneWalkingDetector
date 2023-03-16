@@ -6,7 +6,7 @@ import os
 
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from _utils.PoseTransfromer import writeJson, readJson, alphaose2kineticsFormat
+from _utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
 
 def jsonPosePack(poses, label_index, label_name):
     data = [{
