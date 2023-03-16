@@ -79,6 +79,18 @@ class Graph():
                              (10, 8), (8, 2), (11, 9), (9, 7), (7, 1), (13, 0)]
             self.edge = self_link + neighbor_link
             self.center = 13
+        elif layout == 'halpe_26':
+            self.num_node = 26
+            self_link = [(i, i) for i in range(self.num_node)]
+            neighbor_link = [(18, 0), (18, 6), (18, 5), (18, 19), (18, 0), 
+                              (0, 17), (0, 2), (0, 1), (2, 4), (1, 3), 
+                              (6, 8),(8, 10), (5, 7), (7, 9), 
+                              (19, 12), (19, 11),(12, 14), (14, 16), (11, 13), (13, 15), 
+                              (16, 25),(16, 21), (16, 23),
+                              (15, 24), (15, 20), (15, 22)
+                              ]
+            self.edge = self_link + neighbor_link
+            self.center = 18
         # elif layout=='customer settings'
         #     pass
         else:
