@@ -32,7 +32,7 @@ class ActionEstimation():
         self.model.eval()
         
     
-    def predictSingleCap(self, keypoints, kp_scores, image_size):
+    def predictSingleCap(self, keypoints, kp_scores, image_size, copy_times = 30):
         """Predict actions from single person skeleton points and score in a cap.
         Args:
             keypoints: (numpy) points in shape `(v, c)` where
@@ -42,23 +42,12 @@ class ActionEstimation():
                 v : number of graph node (body parts).,
                 c : channel (score).,
             image_size: (tuple of int) width, height of image frame.
+            copy_times: (int) copy times for a cap to make vedio frames
         Returns:
             (str) action name.
         """
-        pts = np.concatenate((keypoints, kp_scores), axis=1)    # 骨骼和置信度结合
-
-        pts[:, :2] = normalize_points_with_size(pts[:, :2], image_size[0], image_size[1])
-        pts[:, :2] = scale_pose(pts[:, :2])
-
-        pts = torch.tensor(pts, dtype=torch.float32)
-        pts = pts.permute(1, 0)[None, :, None, :] # N, C, T, V
-        pts = pts.to(self.device)
-        mot = pts[:, :2, :, :] - pts[:, :2, :, :]
-
-        out = self.model((pts, mot))
-        out = out.detach().cpu().numpy()
-        print(out[0])
-        return out[0].argmax()
+        pts = [np.concatenate((keypoints, kp_scores), axis=1)] * copy_times    # 骨骼和置信度结合
+        return self.predict(np.array(pts), image_size)
     
     def predict(self, pts, image_size):
         """Predict actions from single person skeleton points and score in time sequence.
@@ -84,8 +73,7 @@ class ActionEstimation():
         out = self.model((pts, mot))
         out = out.detach().cpu().numpy()
         print(out)
-        return out[0].argmax()
-
+        return out[0].argmax() 
 
     def getLabel(self, num_class):
         assert(num_class >= 0 and num_class < self.count_class)
