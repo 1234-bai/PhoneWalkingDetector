@@ -1,14 +1,16 @@
 import argparse
 import cv2
 from pathlib import Path
+import numpy as np
 
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
 from libs.yolov5.utils.plots import colors, save_one_box
 from libs.yolov5.utils.general import check_requirements, increment_path, print_args
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from libs.st_gcn.StgcnApi import ActionEstimation
-from _utils.PointsUtils import getBoxCenters, twoPointsSuperpose
-from _utils.PoseTransformer import coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO, halpe26_2_haplpe26 as hh
+from libs.st_gcn.TwoStreamStgcn import ActionEstimation
+from _utils.PointsUtils import pointInBox, pointsAnyInBox
+from _utils.PoseTransformer import getBodyPartIndex, \
+    coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO, halpe26_2_haplpe26 as hh
 
 
 def run(
@@ -25,7 +27,7 @@ def run(
 
 ):
 
-    ae = ActionEstimation(weight_file='libs\st_gcn\model\stgcn_epoch50_model.pt')
+    ae = ActionEstimation()
 
     poseTest = SingleImagePoseEstimation(
         configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
@@ -69,37 +71,43 @@ def run(
 
         # 检测人像
         _, peopleXyxyBoxes, crops, confs = test.detectorSingleImg(img, classes=[0])
-        if(len(peopleXyxyBoxes) > 0):
+        if(len(peopleXyxyBoxes) > 0):   # 存在人像
 
             # 根据人像检测骨骼结点
             poses = poseTest.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
             # 对每个人像进行手机检测和动作检测
             for i,crop in enumerate(crops): #   对于每个人像
+                peopleBox = peopleXyxyBoxes[i]  # 获得此人的人像盒子xyxy
                 keypoints = poses[i]['keypoints'] # 获得此人的骨骼结点
                 scores = poses[i]['kp_score'] # 获得此人的骨骼结点置信度
-                
+                box = poses[i]['bbox'] # 每个人像的骨骼盒子xywhBox
+
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                keypoints = cC(keypoints, [17, 2])
-                scores = cC(scores, [17, 1])
-                box = poses[i]['bbox'] # 每个人像的xywhBox
-                actionName = ae.predictSingleCap(keypoints, scores, (box[2], box[3]))
+                kp = cC(keypoints, [17, 2]) - np.array((box[0], box[1]))
+                sc = cC(scores, [17, 1])
+                actionName = ae.getLabel(ae.predictSingleCap(kp, sc, (box[2], box[3])))
                 if(actionName != 'Walking'):
                     continue
 
-                # 手机检测
+                # (手持)手机检测
                 _, phoneXyxyBoxes,_, _ = phoneTest.detectorSingleImg(crop, classes=[0], conf_thres=0.4)
                 if(len(phoneXyxyBoxes)):   # 人像图中存在手机
-                    phoneCenters = getBoxCenters(phoneXyxyBoxes)
-                    for j, pc in enumerate(phoneCenters):  # 对于每个手机，是否与人手重合
-                        peopleBox = peopleXyxyBoxes[i]
-                        if(twoPointsSuperpose(poses[i], pc, [1, 2])):
+                    wristpoints = keypoints[getBodyPartIndex(poseTest.poseType, 'wrist')]
+                    earpoints = keypoints[getBodyPartIndex(poseTest.poseType, 'ear')]
+                    for phoneBox in phoneXyxyBoxes:  # 对于每个手机，是否与人手重合
+                        superposed = False
+                        phoneBox += np.array(peopleBox)[[0, 1, 0, 1]]
+                        if pointsAnyInBox(wristpoints, phoneBox):
+                            if not pointsAnyInBox(earpoints, phoneBox):
+                                superposed = True
+                        if superposed:
                             if save_crop:
                                 cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
                                 save_one_box(peopleBox, im0, file=cropPath, BGR=True)
                             annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
-                            annotator.double_box_label(peopleBox, phoneXyxyBoxes[j], label='phone', color=colors(5))
+                            annotator.box_label(phoneBox, label='phone', color=colors(5))
                             break
 
         img = annotator.result()
