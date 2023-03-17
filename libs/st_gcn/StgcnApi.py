@@ -50,7 +50,6 @@ class ActionEstimation():
         pts = np.concatenate((keypoints, kp_scores), axis=1)    # 骨骼和置信度结合
 
         pts[:, :2] = normalize_points_with_size(pts[:, :2], image_size[0], image_size[1])
-        pts[:, :2] = scale_pose(pts[:, :2])
 
         pts = torch.tensor(pts, dtype=torch.float32)
         pts = pts.permute(1, 0)[None, :, None, :, None] # N, C, T, V, M
@@ -74,7 +73,6 @@ class ActionEstimation():
             (numpy array) Probability of each class actions.
         """
         pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
-        pts[:, :, :2] = scale_pose(pts[:, :, :2])
 
         pts = torch.tensor(pts, dtype=torch.float32)
         pts = pts.permute(2, 0, 1)[None, :, :, :, None] # N,C,T,V,M
@@ -102,16 +100,3 @@ def normalize_points_with_size(xy, width, height, flip=False):
     if flip:
         xy[:, :, 0] = 1 - xy[:, :, 0]
     return xy
-
-
-def scale_pose(xy):
-    """Normalize pose points by scale with max/min value of each pose.
-    xy : (frames, parts, xy) or (parts, xy)
-    """
-    if xy.ndim == 2:
-        xy = np.expand_dims(xy, 0)
-    xy_min = np.nanmin(xy, axis=1)
-    xy_max = np.nanmax(xy, axis=1)
-    for i in range(xy.shape[0]):
-        xy[i] = ((xy[i] - xy_min[i]) / (xy_max[i] - xy_min[i])) * 2 - 1
-    return xy.squeeze()
