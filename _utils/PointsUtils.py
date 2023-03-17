@@ -9,6 +9,22 @@ def twoPointsSuperpose(p1, p2, imageSize, superposeThresold = 0.4):
     return True
 
 
+def pointInBox(p, box, ex=0.5):
+    p = [int(x) for x in p]
+    box = np.array(box)
+    c = ((box[2:] - box[:2]) * ex)[[0, 1, 0, 1]] * np.array([-1, -1, 1, 1])
+    box = [int(x) for x in (box+c)]
+    return ((p[0] - box[0]) * (p[0] - box[2])) <= 0 and ((p[1] - box[1]) * (p[1] - box[3])) <= 0
+
+
+def pointsAnyInBox(points, box, ex=0.5):
+    '''
+        if any point of points in the box return True
+    '''
+    for point in points:
+        if pointInBox(point, box, ex): return True
+    return False
+
 def getBoxCenters(boxes):
     boxes = np.array(boxes)
     return np.concatenate(

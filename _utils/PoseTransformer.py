@@ -45,10 +45,37 @@ def coco2017Keypoints2openposeCoco(coco2017, inputSize=[17, 3]):
     coco2017 = torch.FloatTensor(coco2017)
     res = torch.zeros(18, *(inputSize[1::]))
     res[[0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]] = \
-        coco2017[[0, 6, 8, 10, 5, 7, 9, 12, 14, 16, 11, 13, 15, 2, 1, 4, 3]]
+        coco2017[[0, 5, 7, 9, 6, 8, 20, 11, 13, 15, 12, 14, 16, 1, 2, 3, 4]]
     res[1] = (coco2017[5] + coco2017[6])/2.0
     return res.numpy()
 
 # coco2017format skeleton to openposeCocoFormat skeleton
 def halpe26_2_haplpe26(coco2017, inputSize=[17, 3]):
     return np.array(coco2017)
+
+
+def getBodyPartIndex(keypoinesType = 'coco2017', bodyPartType = 'wrist'):
+    keypoinesType = keypoinesType.lower()
+    bodyPartType = bodyPartType.lower()
+    if bodyPartType == 'wrist':
+        if keypoinesType == 'coco2017' or keypoinesType == 'mscoco':
+            return [9, 10]
+        elif keypoinesType == 'openpose25' or keypoinesType == 'openposecoco':
+            return [4,7]
+        elif keypoinesType == 'cococut':
+            return [5, 6]
+        elif keypoinesType == 'halpe_26':
+            return [9, 10]
+    elif bodyPartType == 'ear':
+        if keypoinesType == 'coco2017' or keypoinesType == 'mscoco':
+            return [3, 4]
+        elif keypoinesType == 'openpose25':
+            return [17, 18]
+        elif keypoinesType == 'openposecoco':
+            return [16,17]
+        elif keypoinesType == 'cococut':
+            return None
+        elif keypoinesType == 'halpe_26':
+            return [3, 4]
+    else:
+        return None
