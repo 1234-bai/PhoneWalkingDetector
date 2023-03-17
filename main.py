@@ -8,7 +8,7 @@ from libs.yolov5.utils.plots import colors, save_one_box
 from libs.yolov5.utils.general import check_requirements, increment_path, print_args
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation
-from _utils.PointsUtils import pointInBox, pointsAnyInBox
+from _utils.PointsUtils import kepoints2bbox, pointsAnyInBox
 from _utils.PoseTransformer import getBodyPartIndex, \
     coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO, halpe26_2_haplpe26 as hh
 
@@ -81,13 +81,14 @@ def run(
                 peopleBox = peopleXyxyBoxes[i]  # 获得此人的人像盒子xyxy
                 keypoints = poses[i]['keypoints'] # 获得此人的骨骼结点
                 scores = poses[i]['kp_score'] # 获得此人的骨骼结点置信度
-                box = poses[i]['bbox'] # 每个人像的骨骼盒子xywhBox
 
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                kp = cC(keypoints, [17, 2]) - np.array((box[0], box[1]))
+                kp = cC(keypoints, [17, 2])
                 sc = cC(scores, [17, 1])
-                actionName = ae.getLabel(ae.predictSingleCap(kp, sc, (box[2], box[3])))
+                box = kepoints2bbox(kp) # 每个人像的骨骼盒子xywhBox
+                kp -= box[:2]
+                actionName = ae.getLabel(ae.predictSingleCap(kp, sc, box[2:]-box[:2]))
                 if(actionName != 'Walking'):
                     continue
 

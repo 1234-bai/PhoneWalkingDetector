@@ -35,7 +35,7 @@ def getBoxCenters(boxes):
         axis=1
     )
 
-def pt2bbox(kpt, ex=20):
+def kepoints2bbox(kpt, ex=5):
     """Get bbox that hold on all of the points (x,y)
     kpt: array of shape `(N, 2)`,
     ex: (int) expand bounding box,
