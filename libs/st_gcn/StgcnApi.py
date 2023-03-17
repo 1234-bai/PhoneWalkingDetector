@@ -2,7 +2,6 @@ import os
 import torch
 import numpy as np
 
-# from .net.tssg import TwoStreamSpatialTemporalGraph as Model
 from .net.st_gcn import Model
 
 

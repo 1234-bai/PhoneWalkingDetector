@@ -9,11 +9,11 @@ phoneTest= TargetsDecetor(
     data='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\data\phone.yaml'
 )
 
-dataset = phoneTest.loadData(source='images')
+dataset = phoneTest.loadData(source='data/images')
 
 
 for path, _, im0s, vid_cap, s in dataset:
-    im0 = im0s
+    im0 = im0s[0] if dataset.mode == "stream" else im0s
     # 注释器（画图器）
     annotator = TargetsAnnotator(im0, 2)
     _, phoneXyxyBoxes, _, confs= phoneTest.detectorSingleImg(im0, classes=[0])
