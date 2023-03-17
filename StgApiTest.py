@@ -1,28 +1,28 @@
 import numpy as np
 import cv2
 
-from _utils.PointsUtils import pt2bbox
+from _utils.PointsUtils import kepoints2bbox
 from libs.Track.Tracker import Tracker, Detection
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
 from libs.yolov5.utils.plots import colors
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
-from libs.st_gcn.StgcnApi import ActionEstimation
-from _utils.PoseTransformer import halpe26_2_haplpe26 as Dt
+from libs.st_gcn.TwoStreamStgcn import ActionEstimation
+from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt
 
 
 ae = ActionEstimation()
 
-# poseTest = SingleImagePoseEstimation(
-#     configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
-#     checkpoint='libs\\Alphapose\\pretrained_models\\fast_res50_256x192.pth',
-#     device=0
-# )
-
 poseTest = SingleImagePoseEstimation(
-    configFilePath='libs\\Alphapose\\configs\\halpe_26\\resnet\\256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs\\Alphapose\\pretrained_models\\halpe26_fast_res50_256x192.pth',
+    configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
+    checkpoint='libs\\Alphapose\\pretrained_models\\fast_res50_256x192.pth',
     device=0
 )
+
+# poseTest = SingleImagePoseEstimation(
+#     configFilePath='libs\\Alphapose\\configs\\halpe_26\\resnet\\256x192_res50_lr1e-3_1x.yaml',
+#     checkpoint='libs\\Alphapose\\pretrained_models\\halpe26_fast_res50_256x192.pth',
+#     device=0
+# )
 
 test =  TargetsDecetor(
     weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\yolov5s.pt',
@@ -33,7 +33,7 @@ dataset = test.loadData(source='data/images')
 tracker = None
 preFilename = ''
 for path, _, im0s, vid_cap, s in dataset:
-
+    # if dataset.mode == 'image': continue
     # 获得文件名字
     filename = path[0] if dataset.mode == 'stream' else path
 
@@ -57,11 +57,14 @@ for path, _, im0s, vid_cap, s in dataset:
                 
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                keypoints = Dt(keypoints, [17, 2])
-                scores = Dt(scores, [17, 1])
-                actionName = ae.predictSingleCap(keypoints, scores, (im0.shape[:2][::-1]))
+                kp = Dt(keypoints, [17, 2]) 
+                sc = Dt(scores, [17, 1])
+                boneBox = kepoints2bbox(kp)   # 获得骨架盒子，注意和人体盒子相区分。
+                kp -= boneBox[:2] # 获得相对于自身骨架盒子的坐标
+                actionName = ae.predictSingleCap(kp, sc, boneBox[2:]-boneBox[:2])
                 
-                annotator.box_label(peopleXyxyBoxes[i], label=str(actionName), color=colors(0))
+                annotator.box_label(peopleXyxyBoxes[i], label=ae.getLabel(actionName), color=colors(0))
+
         else:   # stream or vedio for tracker
             if preFilename != filename: # 新的视频或者第一个视频
                 # 旧的Tracker在tracker不指向它的时候，被Python垃圾回收机制自动回收
@@ -81,11 +84,9 @@ for path, _, im0s, vid_cap, s in dataset:
             for ps in poses:
                 kp = Dt(ps['keypoints'], [17, 2])
                 sc = Dt(ps['kp_score'], [17, 1])
-                # kp = ps['keypoints']
-                # sc = ps['kp_score']
                 detections.append(
                     Detection(
-                        pt2bbox(kp),
+                        kepoints2bbox(kp),
                         np.concatenate((kp,sc), axis=1),
                         sc.mean()
                     )
@@ -100,9 +101,9 @@ for path, _, im0s, vid_cap, s in dataset:
                 # Use 30 frames time-steps to prediction.
                 if len(track.keypoints_list) >= 10:
                     pts = np.array(track.keypoints_list, dtype=np.float32)
-                    actionName = str(ae.predict(pts, im0.shape[:2]))
+                    actionName = ae.getLabel(ae.predict(pts, im0.shape[:2]))
                 # if actionName == 'Walking':
-                annotator.box_label(bbox, actionName)
+                annotator.box_label(bbox, actionName, color=colors(0))
 
 
     img = annotator.result()
