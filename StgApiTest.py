@@ -1,34 +1,38 @@
 import numpy as np
 import cv2
 
-from _utils.PointsUtils import kepoints2bbox
+from _utils.PointsUtils import kepoints2bbox, toBoneboxCoord
 from libs.Track.Tracker import Tracker, Detection
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
 from libs.yolov5.utils.plots import colors
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
-from libs.st_gcn.TwoStreamStgcn import ActionEstimation
-from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt
+from libs.st_gcn.StgcnApi import ActionEstimation
+from _utils.PoseTransformer import nochange as Dt
 
 
-ae = ActionEstimation()
+ae = ActionEstimation(
+    weight_file='libs/st_gcn/model/epoch50_model (2).pt',
+    class_names= ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Photograph', 'Stand', 'Sit', 'Other'],
+    layout='Mscoco'
+)
 
 poseTest = SingleImagePoseEstimation(
-    configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs\\Alphapose\\pretrained_models\\fast_res50_256x192.pth',
+    configFilePath='libs/Alphapose/configs/coco/resnet/256x192_res50_lr1e-3_1x.yaml',
+    checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
     device=0
 )
 
 # poseTest = SingleImagePoseEstimation(
-#     configFilePath='libs\\Alphapose\\configs\\halpe_26\\resnet\\256x192_res50_lr1e-3_1x.yaml',
-#     checkpoint='libs\\Alphapose\\pretrained_models\\halpe26_fast_res50_256x192.pth',
+#     configFilePath='libs/Alphapose/configs/halpe_26/resnet/256x192_res50_lr1e-3_1x.yaml',
+#     checkpoint='libs/Alphapose/pretrained_models/halpe26_fast_res50_256x192.pth',
 #     device=0
 # )
 
 test =  TargetsDecetor(
-    weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\yolov5s.pt',
-    data='libs\\yolov5\\data\\coco128.yaml'
+    weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
+    data='libs/yolov5/data/coco128.yaml'
 )
-dataset = test.loadData(source='data/images')
+dataset = test.loadData(source='stgcnTrainData/Mscoco/Call')
 
 tracker = None
 preFilename = ''
@@ -51,9 +55,9 @@ for path, _, im0s, vid_cap, s in dataset:
             # 根据人像检测骨骼结点
             poses = poseTest.process(im0, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
-            for i,crop in enumerate(crops): #   对于每个人像
-                keypoints = poses[i]['keypoints'] # 获得此人的骨骼结点
-                scores = poses[i]['kp_score'] # 获得此人的骨骼结点置信度
+            for i,pose in enumerate(poses): #   对于每个人像
+                keypoints = pose['keypoints'] # 获得此人的骨骼结点
+                scores = pose['kp_score'] # 获得此人的骨骼结点置信度
                 
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
@@ -100,8 +104,13 @@ for path, _, im0s, vid_cap, s in dataset:
                 actionName = 'pending..'
                 # Use 30 frames time-steps to prediction.
                 if len(track.keypoints_list) >= 10:
-                    pts = np.array(track.keypoints_list, dtype=np.float32)
-                    actionName = ae.getLabel(ae.predict(pts, im0.shape[:2]))
+                    kpt = []
+                    for _kp in track.keypoints_list:
+                        kp = _kp.copy()
+                        kp[:,:2] = toBoneboxCoord(kp[:,:2], norm=True)
+                        kpt.append(kp)
+                    pts = np.array(kpt, dtype=np.float32)
+                    actionName = ae.getLabel(ae.predict(pts, im0.shape[:2], normed=True))
                 # if actionName == 'Walking':
                 annotator.box_label(bbox, actionName, color=colors(0))
 

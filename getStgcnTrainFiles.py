@@ -5,28 +5,31 @@ import random
 import os
 
 from libs.yolov5.yolov5DetectorApi import TargetsDecetor
-from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
+from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADT
 from _utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
 
-def jsonPosePack(poses, label_index, label_name):
-    data = [{
-        "frame_index" : 0,
-        "skeleton" : alphaose2kineticsFormat(poses)
-    }] if poses is not None and len(poses) > 0 else []
+def jsonPosePack(poses, label_index, label_name, copyTimes):
+    data = []
+    if poses is not None and len(poses) > 0:
+        skeleton = alphaose2kineticsFormat(poses, True)
+        data = [{
+            "frame_index" : i,
+            "skeleton" : skeleton
+        } for i in range(copyTimes)]
     return {
         "data" : data,
         "label" : label_name,
         "label_index" : label_index 
     }
 
-def writePoseJson(poses, label_index, label_name, jsonPath : Path, filename):
-    poseDict = jsonPosePack(poses, label_index, label_name)
+def writePoseJson(poses, label_index, label_name, copyTimes, jsonPath : Path, filename):
+    poseDict = jsonPosePack(poses, label_index, label_name, copyTimes)
     writeJson(poseDict, jsonPath, filename)
 
 
-name = 'halpe26'
-input_dir = Path("D:/QianXiaoYi/Pictures/Data/train_with_anoations/0_phone/images")
-output_dir = Path('stgcnTrainData/')
+name = 'Mscoco'
+input_dir = Path("D:/QianXiaoYi/Pictures/Data/normal_images")
+output_dir = Path(f'stgcnTrainData/{name}')
 output_train_json_dir = output_dir / (f'{name}_train')
 output_val_json_dir = output_dir / (f'{name}_val')
 output_train_json = f'{name}_train_label.json'
@@ -35,10 +38,11 @@ output_val_json = f'{name}_val_label.json'
 valThres = 8
 outTrainSumJson = readJson(output_dir / output_train_json)
 outValSumJson = readJson(output_dir / output_val_json)
-label_names = ['Other', 'Play', 'Call']
+label_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Photograph', 'Stand', 'Sit', 'Other'] # 根据动作分类，而不是手机出现的位置
 copy_dir = [(output_dir / x) for x in label_names]
 for x in copy_dir:
     x.mkdir(parents=True, exist_ok=True)
+frameCount = 30
 
 peopleDec =  TargetsDecetor(
     weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
@@ -46,48 +50,55 @@ peopleDec =  TargetsDecetor(
     device=0
 )
 
+# poseEst = SingleImagePoseEstimation(
+#     configFilePath='libs/Alphapose/configs/halpe_26/resnet/256x192_res50_lr1e-3_1x.yaml',
+#     checkpoint='libs/Alphapose/pretrained_models/halpe26_fast_res50_256x192.pth',
+#     device=0
+# )
+
 poseEst = SingleImagePoseEstimation(
-    configFilePath='libs/Alphapose/configs/halpe_26/resnet/256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs/Alphapose/pretrained_models/halpe26_fast_res50_256x192.pth',
+    configFilePath='libs/Alphapose/configs/coco/resnet/256x192_res50_lr1e-3_1x.yaml',
+    checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
     device=0
 )
 
 dataset = peopleDec.loadData(source=input_dir)
-
-for j, (path, _, im0s, vid_cap, s) in enumerate(dataset):
+count = 0
+for path, _, im0s, vid_cap, s in dataset:
 
     im0 = im0s
     _, peoXyxyBoxes, _, confs= peopleDec.detectorSingleImg(im0, classes=[0], conf_thres=0.45)
     file = Path(path)
     if(len(peoXyxyBoxes) > 0) :
-        poses = poseEst.process(im0, peoXyxyBoxes, confs, normalizelCrood=True)
+        poses = poseEst.process(im0, peoXyxyBoxes, confs)
         filename = file.stem
-        cv2.imshow(filename, im0)
+        im = ADT.viewpPoseInImage(im0, poses, poseEst.__vis_thres__)
+        cv2.imshow(filename, im)
         choice =  cv2.waitKey(0) & 0xFF
         cv2.destroyAllWindows()
         if choice == ord('b'): break
         for i, label in enumerate(label_names):
             if choice == ord(str(i)):
+                count += 1
                 imgDict = {
                     "has_skeleton": poses is not None and len(poses) > 0, 
                     "label": label, 
                     "label_index": i
                 }
-                if(j % 10 < valThres):    # train set
-                    writePoseJson(poses, i, label, output_train_json_dir, (filename+'.json'))
+                if(count % 10 < valThres):    # train set
+                    writePoseJson(poses, i, label, frameCount, output_train_json_dir, (filename+'.json'))
                     outTrainSumJson[filename] = imgDict
-                    print('train')
+                    print(f'train:{count}')
                 else:   #   val set, last 400 images
-                    writePoseJson(poses, i, label, output_val_json_dir, (filename+'.json'))
+                    writePoseJson(poses, i, label, frameCount, output_val_json_dir, (filename+'.json'))
                     outValSumJson[filename] = imgDict
-                    print('val')
+                    print(f'val:{count}')
                 assert(cv2.imwrite(copy_dir[i] / file.name, im0))
                 # file.unlink()
                 break
-    # else:
-    #     file.unlink()
+
 writeJson(outTrainSumJson, output_dir, output_train_json)
-writeJson(outValSumJson, output_dir, output_val_json) 
+writeJson(outValSumJson, output_dir, output_val_json)
 
 # 将分完的图片删除掉
 # 删除目标文件夹里的隐藏文件

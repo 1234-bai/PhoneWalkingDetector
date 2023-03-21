@@ -91,6 +91,31 @@ class Graph():
                               ]
             self.edge = self_link + neighbor_link
             self.center = 18
+        elif layout == 'Mscoco':
+            self.num_node = 17
+            self_link = [(i, i) for i in range(self.num_node)]
+            neighbor_1base = [
+                (1, 2), (1, 3), (3, 5), (2, 4), # face
+                (1, 6), (1, 7), # shoulder
+                (7, 9), (9, 11), (6, 8), (8, 10), # arms
+                (1, 13), (1, 12),
+                (13, 15), (15, 17), (12, 14), (14, 16)
+            ]
+            neighbor_link = [(i - 1, j - 1) for (i, j) in neighbor_1base]
+            self.edge = self_link + neighbor_link
+            self.center = 1 - 1
+        elif layout == 'Mscoco_cut':
+            self.num_node = 13
+            self_link = [(i, i) for i in range(self.num_node)]
+            neighbor_1base = [
+                (1, 2), (1, 3), (3, 5), (2, 4), # face
+                (1, 6), (1, 7), # shoulder
+                (7, 9), (9, 11), (6, 8), (8, 10), # arms
+                (1, 13), (1, 12)
+            ]
+            neighbor_link = [(i - 1, j - 1) for (i, j) in neighbor_1base]
+            self.edge = self_link + neighbor_link
+            self.center = 1 - 1
         # elif layout=='customer settings'
         #     pass
         else:
