@@ -11,7 +11,6 @@ from easydict import EasyDict as edict
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # Alphapose root directory
-print(f"alphapose:{ROOT}")
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
@@ -23,14 +22,12 @@ from alphapose.models import builder
 from alphapose.utils.config import update_config
 from alphapose.utils.vis import getTime
 from libs.yolov5.utils.torch_utils import select_device
-from _utils.PointsUtils import twoPointsSuperpose
 
 
 class AlphaposeDataTransformer():
 
     @staticmethod
     def heatmap2Pose(
-        imagesz,   # width, height
         boxes,  # xyxy
         cropped_boxes,  # xywh
         scores,
@@ -41,13 +38,9 @@ class AlphaposeDataTransformer():
         hm_size,
         use_heatmap_loss,
         heatmap_to_coord,
-        normalizeCoord = False, # 坐标是否归一化
         min_box_area=0, # min box area to filter out
     ):
 
-        if normalizeCoord:
-            imagesz = torch.tensor(imagesz)
-            assert(imagesz.shape == torch.Size([2]))
         assert(boxes is not None and len(boxes) != 0)
         # location prediction (n, kp, 2) | score prediction (n, kp, 1)
         assert hm.dim() == 4
@@ -84,11 +77,11 @@ class AlphaposeDataTransformer():
         _result = []
         for k in range(len(scores)):
             _result.append({
-                'keypoints':preds_img[k]/imagesz if normalizeCoord else preds_img[k],
+                'keypoints':preds_img[k],
                 'kp_score':preds_scores[k],
                 'proposal_score': torch.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),
                 'idx':ids[k],
-                'bbox':[boxes[k][0], boxes[k][1], boxes[k][2]-boxes[k][0],boxes[k][3]-boxes[k][1]] 
+                'bbox':[boxes[k][0], boxes[k][1], boxes[k][2]-boxes[k][0], boxes[k][3]-boxes[k][1]] 
             })
 
         return _result
@@ -145,7 +138,6 @@ class SingleImagePoseEstimation():
         image, # HWC, BGR
         boxes, 
         confs, 
-        normalizelCrood = False,
         flipFlag=False
     ):
         with torch.no_grad():
@@ -169,7 +161,6 @@ class SingleImagePoseEstimation():
                 hm = hm.cpu()
             # transform heatmap data to pose data
             poses = AlphaposeDataTransformer.heatmap2Pose(
-                image.shape[:2][::-1], # tuple(H, W, C) -> tuple(W, H) 
                 torch.FloatTensor(boxes), 
                 torch.FloatTensor(cropped_boxes), 
                 torch.FloatTensor(confs), 
@@ -180,7 +171,6 @@ class SingleImagePoseEstimation():
                 self.cfg.DATA_PRESET.HEATMAP_SIZE,
                 self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss') == 'MSELoss',
                 get_func_heatmap_to_coord(self.cfg),
-                normalizeCoord=normalizelCrood
             )
         return poses
 

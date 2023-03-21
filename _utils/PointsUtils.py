@@ -44,6 +44,16 @@ def kepoints2bbox(kpt, ex=5):
                      kpt[:, 0].max() + ex, kpt[:, 1].max() + ex))
 
 
+def toBoneboxCoord(keypoints, norm=False, extension=5):
+    '''
+        trans keypoints to their boneBox coord
+    '''
+    boneBox = kepoints2bbox(keypoints, extension) # 求出骨架盒子
+    # wh =  boneBox[2:]- boneBox[:2] # 求出骨架盒子宽和高
+    # 求出相对于骨架盒子的(归一化)坐标
+    kt = (keypoints - boneBox[:2]) / (boneBox[2:]- boneBox[:2]) if norm else (keypoints - boneBox[:2])
+    return kt
+
 def normalize_points_with_size(xy, width, height, flip=False):
     """Normalize scale points in image with size of image to (0-1).
     xy : (frames, parts, xy) or (parts, xy)

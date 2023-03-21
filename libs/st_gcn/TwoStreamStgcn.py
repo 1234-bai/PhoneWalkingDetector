@@ -49,7 +49,7 @@ class ActionEstimation():
         pts = [np.concatenate((keypoints, kp_scores), axis=1)] * copy_times    # 骨骼和置信度结合
         return self.predict(np.array(pts), image_size)
     
-    def predict(self, pts, image_size):
+    def predict(self, pts, image_size, normed=False):
         """Predict actions from single person skeleton points and score in time sequence.
         Args:
             pts: (numpy array) points and score in shape `(t, v, c)` where
@@ -60,7 +60,8 @@ class ActionEstimation():
         Returns:
             (numpy array) Probability of each class actions.
         """
-        pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
+        if not normed:
+            pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
         pts[:, :, :2] = scale_pose(pts[:, :, :2])
 
         pts = torch.tensor(pts, dtype=torch.float32)

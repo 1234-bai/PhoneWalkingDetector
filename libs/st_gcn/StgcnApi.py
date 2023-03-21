@@ -16,12 +16,12 @@ class ActionEstimation():
         self,
         weight_file = 'libs\st_gcn\model\epoch70_model.pt',
         class_names = ['Other', 'Play', 'Call'],
+        layout='halpe_26',
         device='cuda'
     ):
         graph_args = {
             'strategy': 'spatial',
-            # 'layout': 'openpose',
-            'layout': 'halpe_26',
+            'layout': layout,
         }
         in_channels = 3
         self.count_class = len(class_names)
@@ -34,7 +34,7 @@ class ActionEstimation():
         self.model.eval()
         
     
-    def predictSingleCap(self, keypoints, kp_scores, image_size):
+    def predictSingleCap(self, keypoints, kp_scores, image_size, copy_times=30):
         """Predict actions from single person skeleton points and score in a cap.
         Args:
             keypoints: (numpy) points in shape `(v, c)` where
@@ -47,21 +47,11 @@ class ActionEstimation():
         Returns:
             (str) action name.
         """
-        pts = np.concatenate((keypoints, kp_scores), axis=1)    # 骨骼和置信度结合
 
-        pts[:, :2] = normalize_points_with_size(pts[:, :2], image_size[0], image_size[1])
-
-        pts = torch.tensor(pts, dtype=torch.float32)
-        pts = pts.permute(1, 0)[None, :, None, :, None] # N, C, T, V, M
-        pts = pts.to(self.device)
-
-
-        out = self.model(pts)
-        out = out.detach().cpu().numpy()
-        print(out[0])
-        return out[0].argmax()
+        pts = [np.concatenate((keypoints, kp_scores), axis=1)] * copy_times     # 骨骼和置信度结合
+        return self.predict(np.array(pts), image_size)
     
-    def predict(self, pts, image_size):
+    def predict(self, pts, image_size, normed=False):
         """Predict actions from single person skeleton points and score in time sequence.
         Args:
             pts: (numpy array) points and score in shape `(t, v, c)` where
@@ -72,7 +62,8 @@ class ActionEstimation():
         Returns:
             (numpy array) Probability of each class actions.
         """
-        pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
+        if not normed:
+            pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
 
         pts = torch.tensor(pts, dtype=torch.float32)
         pts = pts.permute(2, 0, 1)[None, :, :, :, None] # N,C,T,V,M
