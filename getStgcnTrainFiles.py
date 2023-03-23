@@ -4,7 +4,7 @@ from pathlib import Path
 import random
 import os
 
-from libs.yolov5.yolov5DetectorApi import TargetsDecetor
+from libs.yolov5.yolov5DetectorApi import TargetsDetector, select_device
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADT
 from _utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
 
@@ -44,10 +44,11 @@ for x in copy_dir:
     x.mkdir(parents=True, exist_ok=True)
 frameCount = 30
 
-peopleDec =  TargetsDecetor(
+device = select_device(0)
+peopleDec =  TargetsDetector(
     weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
     data='libs/yolov5/data/coco128.yaml',
-    device=0
+    device=device
 )
 
 # poseEst = SingleImagePoseEstimation(
@@ -57,9 +58,9 @@ peopleDec =  TargetsDecetor(
 # )
 
 poseEst = SingleImagePoseEstimation(
-    configFilePath='libs/Alphapose/configs/coco/resnet/256x192_res50_lr1e-3_1x.yaml',
+    configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
     checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
-    device=0
+    device=device
 )
 
 dataset = peopleDec.loadData(source=input_dir)
@@ -77,6 +78,15 @@ for path, _, im0s, vid_cap, s in dataset:
         choice =  cv2.waitKey(0) & 0xFF
         cv2.destroyAllWindows()
         if choice == ord('b'): break
+        if choice == ord('d'):
+            if filename in outValSumJson:
+                del outValSumJson[filename]
+                (output_val_json_dir / (filename+'.json')).unlink()
+            if filename in outTrainSumJson:
+                del outTrainSumJson[filename]
+                (output_train_json_dir / (filename+'.json')).unlink()             
+            file.unlink()
+            continue
         for i, label in enumerate(label_names):
             if choice == ord(str(i)):
                 count += 1
@@ -86,19 +96,24 @@ for path, _, im0s, vid_cap, s in dataset:
                     "label_index": i
                 }
                 if(count % 10 < valThres):    # train set
+                    print(f'train:{count}')
                     writePoseJson(poses, i, label, frameCount, output_train_json_dir, (filename+'.json'))
                     outTrainSumJson[filename] = imgDict
-                    print(f'train:{count}')
+                    if filename in outValSumJson:
+                        writePoseJson(poses, i, label, frameCount, output_val_json_dir, (filename+'.json'))
+                        outValSumJson[filename] = imgDict
+                        print(f'{filename} also in val')
                 else:   #   val set, last 400 images
+                    print(f'val:{count}')
                     writePoseJson(poses, i, label, frameCount, output_val_json_dir, (filename+'.json'))
                     outValSumJson[filename] = imgDict
-                    print(f'val:{count}')
+                    if filename in outTrainSumJson:
+                        writePoseJson(poses, i, label, frameCount, output_train_json_dir, (filename+'.json'))
+                        outTrainSumJson[filename] = imgDict
+                        print(f'{filename} also in train')
                 assert(cv2.imwrite(copy_dir[i] / file.name, im0))
                 # file.unlink()
                 break
 
 writeJson(outTrainSumJson, output_dir, output_train_json)
 writeJson(outValSumJson, output_dir, output_val_json)
-
-# 将分完的图片删除掉
-# 删除目标文件夹里的隐藏文件

@@ -1,14 +1,5 @@
 import numpy as np
 
-def twoPointsSuperpose(p1, p2, imageSize, superposeThresold = 0.4):
-    # if(isinstance(p1, list)):
-    #     assert(len(p1) == 2 and len(p2) == 2)
-    # width = 1.0 * (p2[0] - p1[0]) / imageSize[0]
-    # height = 1.0 * (p2[1] - p1[1]) / imageSize[1]
-    # return width * width + height * height <= superposeThresold * superposeThresold
-    return True
-
-
 def pointInBox(p, box, ex=0.5):
     p = [int(x) for x in p]
     box = np.array(box)
@@ -53,15 +44,3 @@ def toBoneboxCoord(keypoints, norm=False, extension=5):
     # 求出相对于骨架盒子的(归一化)坐标
     kt = (keypoints - boneBox[:2]) / (boneBox[2:]- boneBox[:2]) if norm else (keypoints - boneBox[:2])
     return kt
-
-def normalize_points_with_size(xy, width, height, flip=False):
-    """Normalize scale points in image with size of image to (0-1).
-    xy : (frames, parts, xy) or (parts, xy)
-    """
-    if xy.ndim == 2:
-        xy = np.expand_dims(xy, 0)
-    xy[:, :, 0] /= width
-    xy[:, :, 1] /= height
-    if flip:
-        xy[:, :, 0] = 1 - xy[:, :, 0]
-    return xy

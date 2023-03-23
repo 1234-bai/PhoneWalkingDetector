@@ -1,10 +1,5 @@
 import torch
-import os
-import platform
 import sys
-import math
-import time
-import cv2
 import numpy as np
 from pathlib import Path
 from easydict import EasyDict as edict
@@ -16,12 +11,10 @@ if str(ROOT) not in sys.path:
 
 from alphapose.utils.transforms import get_func_heatmap_to_coord
 from alphapose.utils.pPose_nms import pose_nms
-from alphapose.utils.presets import SimpleTransform, SimpleTransform3DSMPL
-from alphapose.utils.transforms import flip, flip_heatmap
+from alphapose.utils.presets import SimpleTransform
 from alphapose.models import builder
 from alphapose.utils.config import update_config
 from alphapose.utils.vis import getTime
-from libs.yolov5.utils.torch_utils import select_device
 
 
 class AlphaposeDataTransformer():
@@ -114,12 +107,16 @@ class AlphaposeDataTransformer():
 # process single single-human image
 class SingleImagePoseEstimation():
 
-    def __init__(self, configFilePath, checkpoint, device):
+    def __init__(
+        self, 
+        configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
+        checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
+        device : torch.device = 0
+):
 
         cfg = update_config(configFilePath)
         self.cfg = cfg
-        # device = torch.device("cuda:" + str(device) if device >= 0 else "cpu")
-        self.device = select_device(device)
+        self.device = device
         self.pose_dataset = builder.retrieve_dataset(cfg.DATASET.TRAIN)
         self.poseType = cfg.DATASET.TRAIN.TYPE
 
@@ -138,7 +135,6 @@ class SingleImagePoseEstimation():
         image, # HWC, BGR
         boxes, 
         confs, 
-        flipFlag=False
     ):
         with torch.no_grad():
             assert(image is not None)
@@ -147,18 +143,12 @@ class SingleImagePoseEstimation():
             inps = torch.zeros(len(boxes), 3, *(self.transformation._input_size))
             cropped_boxes = []
             for i, box in enumerate(boxes):
-                inps[i], cropped_box = self.transformation.test_transform(image, box)
+                inps[i], cropped_box = self.transformation.test_transform(image, box) # box is xyxy, cropped_box is xywh from box
                 # cropped_boxes = torch.FloatTensor([cropped_box])
                 cropped_boxes.append(cropped_box)
             # Pose Estimation
             inps = inps.to(self.device)
-            if flipFlag:
-                inps = torch.cat((inps, flip(inps)))
             hm = self.pose_model(inps)
-            if flipFlag:
-                hm_flip = flip_heatmap(hm[int(len(hm) / 2):], self.pose_dataset.joint_pairs, shift=True)
-                hm = (hm[0:int(len(hm) / 2)] + hm_flip) / 2
-                hm = hm.cpu()
             # transform heatmap data to pose data
             poses = AlphaposeDataTransformer.heatmap2Pose(
                 torch.FloatTensor(boxes), 
@@ -196,36 +186,13 @@ class SingleImagePoseEstimation():
     def __setTransformation(self):
          # load image preprocess transormer
         cfg = self.cfg
-        if cfg.DATA_PRESET.TYPE == 'simple':
-            self.transformation = SimpleTransform(
-                self.pose_dataset, 
-                scale_factor=0,
-                input_size=cfg.DATA_PRESET.IMAGE_SIZE,
-                output_size=cfg.DATA_PRESET.HEATMAP_SIZE,
-                rot=0, sigma=cfg.DATA_PRESET.SIGMA,
-                train=False, 
-                add_dpg=False, 
-                gpu_device=self.device)
-        elif cfg.DATA_PRESET.TYPE == 'simple_smpl':
-            dummpy_set = edict({
-                'joint_pairs_17': None,
-                'joint_pairs_24': None,
-                'joint_pairs_29': None,
-                'bbox_3d_shape': (2.2, 2.2, 2.2)
-            })
-            self.transformation = SimpleTransform3DSMPL(
-                dummpy_set, 
-                scale_factor=cfg.DATASET.SCALE_FACTOR,
-                color_factor=cfg.DATASET.COLOR_FACTOR,
-                occlusion=cfg.DATASET.OCCLUSION,
-                input_size=cfg.MODEL.IMAGE_SIZE,
-                output_size=cfg.MODEL.HEATMAP_SIZE,
-                depth_dim=cfg.MODEL.EXTRA.DEPTH_DIM,
-                bbox_3d_shape=(2.2, 2,2, 2.2),
-                rot=cfg.DATASET.ROT_FACTOR, 
-                sigma=cfg.MODEL.EXTRA.SIGMA,
-                train=False, 
-                add_dpg=False, 
-                gpu_device=self.device,
-                loss_type=cfg.LOSS['TYPE']
-            )
+        self.transformation = SimpleTransform(
+            self.pose_dataset, 
+            scale_factor=0,
+            input_size=cfg.DATA_PRESET.IMAGE_SIZE,
+            output_size=cfg.DATA_PRESET.HEATMAP_SIZE,
+            rot=0, sigma=cfg.DATA_PRESET.SIGMA,
+            train=False, 
+            add_dpg=False, 
+            gpu_device=self.device
+        )

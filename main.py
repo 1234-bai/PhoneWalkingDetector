@@ -3,18 +3,92 @@ import cv2
 from pathlib import Path
 import numpy as np
 
-from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
+from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator, select_device
 from libs.yolov5.utils.plots import colors, save_one_box
 from libs.yolov5.utils.general import check_requirements, increment_path, print_args
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from libs.st_gcn.TwoStreamStgcn import ActionEstimation
-from _utils.PointsUtils import kepoints2bbox, pointsAnyInBox
-from _utils.PoseTransformer import getBodyPartIndex, \
-    coco2017Keypoints2CocoCut as cC, coco2017Keypoints2openposeCoco as cO, halpe26_2_haplpe26 as hh
+from libs.st_gcn.StgcnApi import ActionEstimation as PhoneActionEstimation
+from libs.st_gcn.TwoStreamStgcn import ActionEstimation as StandActionEstimation
+from _utils.PointsUtils import pointsAnyInBox
+from _utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, \
+    coco2017Keypoints2CocoCut as co2cocut, coco2017Keypoints2openposeCoco as cO, nochange as hh
+
+
+def loadModels(device):
+    # people detector
+    peoDt =  TargetsDetector(
+        weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
+        data='libs/yolov5/data/coco128.yaml',
+        device=device
+    )
+    # phone detector
+    phoneDt= TargetsDetector(
+        weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/phone_ep20.pt',
+        data='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/data/phone.yaml',
+        device=device
+    )
+    # people pose estimation
+    poseEstimation = SingleImagePoseEstimation(device=device)
+    # action estimation of holding phone with hand(s) 
+    phoneAe = PhoneActionEstimation(device=device)
+    # action estimation of sitting and standing
+    walkAe = StandActionEstimation(device=device)
+
+    return peoDt, phoneDt, poseEstimation, phoneAe, walkAe
+
+def phoneWalkingActionAstimationOfSingleImage(phoneActionEstimation, walkingActionEstimation,  keypoints, score):
+    '''
+        keypoints: not normalizied skeleton keypoints
+        score : confidence of keypoints
+    '''
+    kp = toBoneboxCoord(co2cocut(keypoints, [17, 2]), norm=True) # normalizied keypoints according to skeletion box
+    sit = walkingActionEstimation.predictSingleCap(kp, co2cocut(score, [17,1]), None, normed=True)
+    sit = walkingActionEstimation.getLabel(sit)
+    print(sit)    
+    if sit in ['Sitting', 'Lying Down', 'Sit down', 'Fall Down']:
+        return False
+    kp = toBoneboxCoord(keypoints, norm=True)
+    phone = phoneActionEstimation.predictSingleCap(kp, score, None, normed=True)
+    phone = phoneActionEstimation.getLabel(phone)
+    print(phone)    
+    if phone in ['call', 'PlayWithOneHand', 'PlayWithTwoHands']:
+        return True
+    return False
+
+def phoneInHandnotInEars(keypoints, poseFormat, phoneXyxy):
+    wristpoints = keypoints[getBodyPartIndex(poseFormat, 'wrist')]
+    earpoints = keypoints[getBodyPartIndex(poseFormat, 'ear')]
+    if pointsAnyInBox(earpoints, phoneXyxy):
+        return False
+    if pointsAnyInBox(wristpoints, phoneXyxy, 5):
+        return True
+    return False
+
+def saveImageOrVeido(savePath, mode, img, videoWriter, videoCap, isNew):
+    '''
+        img : HWC, BGR
+    '''
+    if mode == 'image':
+        cv2.imwrite(savePath, img)
+    else:   # stream or vedio
+        if isNew: # 是一个新的视频或者第一个视频
+            if videoWriter is not None:
+                videoWriter.release() # release previous video writer
+                videoWriter = None
+            if videoCap: #video
+                fps = videoCap.get(cv2.CAP_PROP_FPS)
+                w = int(videoCap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                h = int(videoCap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            else:   # stream
+                fps, w, h = 30, img.shape[1], img.shape[0]
+            videoWriter = cv2.VideoWriter(str(savePath), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+        assert(videoWriter != None)
+        videoWriter.write(img) # 是前一个视频的下一帧
+        return videoWriter
 
 
 def run(
-    source = 'images',
+    source = 'data/images',
     device = 0,
     view_img = True,
     line_thickness = 2,
@@ -24,124 +98,86 @@ def run(
     name = 'exp',
     exist_ok = False,
     vid_stride = 1
-
 ):
+    # load device
+    device = select_device(device)
 
-    ae = ActionEstimation()
-
-    poseTest = SingleImagePoseEstimation(
-        configFilePath='libs\\Alphapose\\configs\\coco\\resnet\\256x192_res50_lr1e-3_1x.yaml',
-        checkpoint='libs\\Alphapose\\pretrained_models\\fast_res50_256x192.pth',
-        device=device
-    )
-
-    test =  TargetsDecetor(
-        weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\yolov5s.pt',
-        data='libs\\yolov5\\data\\coco128.yaml',
-        device=device
-    )
-    dataset = test.loadData(source=source,vid_stride=vid_stride)
-
-    phoneTest= TargetsDecetor(
-        weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\phone_ep20.pt',
-        data='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\data\phone.yaml',
-        device=device
-    )
+    # load models
+    peoDt, phoneDt, poseEstimation, phoneAe, walkAe = loadModels(device)
+    
+    # load data
+    dataset = peoDt.loadData(source=source,vid_stride=vid_stride)
 
     save = not nosave
     saveDir = increment_path(save_dir+'/'+name, exist_ok=exist_ok, mkdir=True) if save or save_crop else None
     preFilename = ''
-    videoWriter : cv2.VideoWriter = None
+    # for per image or per frame(cap)
     for path, _, im0s, vid_cap, _ in dataset:
 
-        # 获得文件名字和后缀
+        # get filename without suffix and suffix
         if dataset.mode == 'stream':
             filename = path[0]
-            suffix = 'mp4'
+            suffix = '.mp4'
         else:
             filename = Path(path).stem
             suffix = Path(path).suffix
 
-        # 获得原始图片
+        # get original image
         im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
         img = im0.copy()
 
-        # 注释器（画图器）
+        # annotator（drawer）
         annotator = TargetsAnnotator(img, line_thickness)
 
         # 检测人像
-        _, peopleXyxyBoxes, crops, confs = test.detectorSingleImg(img, classes=[0])
+        _, peopleXyxyBoxes, crops, confs = peoDt.detectorSingleImg(img, classes=[0])
         if(len(peopleXyxyBoxes) > 0):   # 存在人像
 
-            # 根据人像检测骨骼结点
-            poses = poseTest.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+            # if dataset.mode == 'image':
+                # 根据人像检测骨骼结点
+                poses = poseEstimation.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
-            # 对每个人像进行手机检测和动作检测
-            for i,crop in enumerate(crops): #   对于每个人像
-                peopleBox = peopleXyxyBoxes[i]  # 获得此人的人像盒子xyxy
-                keypoints = poses[i]['keypoints'] # 获得此人的骨骼结点
-                scores = poses[i]['kp_score'] # 获得此人的骨骼结点置信度
+                # 对每个骨骼结点进行手机检测和动作检测
+                for i,pose in enumerate(poses): #   对于每个人像
+                    peopleBox = peopleXyxyBoxes[i]  # 获得此人的人像盒子xyxy
+                    keypoints = pose['keypoints'] # 获得此人的骨骼结点
+                    score = pose['kp_score'] # 获得此人的骨骼结点置信度
 
-                # 动作检测
-                # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
-                kp = cC(keypoints, [17, 2])
-                sc = cC(scores, [17, 1])
-                box = kepoints2bbox(kp) # 每个人像的骨骼盒子xywhBox
-                kp -= box[:2]
-                actionName = ae.getLabel(ae.predictSingleCap(kp, sc, box[2:]-box[:2]))
-                if(actionName != 'Walking'):
-                    continue
+                    # action estimation
+                    if not phoneWalkingActionAstimationOfSingleImage(phoneAe, walkAe, keypoints, score):
+                        continue
+                    else:
+                        actionName = 'phoneWalking'
 
-                # (手持)手机检测
-                _, phoneXyxyBoxes,_, _ = phoneTest.detectorSingleImg(crop, classes=[0], conf_thres=0.4)
-                if(len(phoneXyxyBoxes)):   # 人像图中存在手机
-                    wristpoints = keypoints[getBodyPartIndex(poseTest.poseType, 'wrist')]
-                    earpoints = keypoints[getBodyPartIndex(poseTest.poseType, 'ear')]
-                    for phoneBox in phoneXyxyBoxes:  # 对于每个手机，是否与人手重合
-                        superposed = False
-                        phoneBox += np.array(peopleBox)[[0, 1, 0, 1]]
-                        if pointsAnyInBox(wristpoints, phoneBox):
-                            if not pointsAnyInBox(earpoints, phoneBox):
-                                superposed = True
-                        if superposed:
-                            if save_crop:
-                                cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
-                                save_one_box(peopleBox, im0, file=cropPath, BGR=True)
-                            annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
-                            annotator.box_label(phoneBox, label='phone', color=colors(5))
-                            break
+                    # (手持)手机检测
+                    _, phoneXyxyBoxes,_, _ = phoneDt.detectorSingleImg(crops[i], classes=[0], conf_thres=0.4)
+                    if(len(phoneXyxyBoxes)):   # 人像图中存在手机
+                        for phoneBox in phoneXyxyBoxes:  # 对于每个手机，是否与人手重合
+                            phoneBox += np.array(peopleBox)[[0, 1, 0, 1]]
+                            if phoneInHandnotInEars(keypoints, poseEstimation.poseType, phoneBox):
+                                if save_crop:
+                                    cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
+                                    save_one_box(peopleBox, im0, file=cropPath, BGR=True)
+                                annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
+                                annotator.box_label(phoneBox, label='phone', color=colors(5))
+                                break
 
         img = annotator.result()
-        filename = filename + '.' + suffix
+        filename = filename + suffix
         # save image/video
         if save:
-            savePath = saveDir.joinpath(filename)
-            if dataset.mode == 'image':
-                cv2.imwrite(savePath, img)
-            else:   # stream or vedio
-                if filename != preFilename: # 是一个新的视频或者第一个视频
-                    preFilename = filename
-                    if videoWriter is not None:
-                        videoWriter.release() # release previous video writer
-                        videoWriter = None
-                    if vid_cap: #video
-                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    else:   # stream
-                        fps, w, h = 30, im0.shape[1], im0.shape[0]
-                    videoWriter = cv2.VideoWriter(str(savePath), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-                assert(videoWriter != None)
-                videoWriter.write(img) # 是前一个视频的下一帧
+            videoWriter = saveImageOrVeido(saveDir / filename, dataset.mode, img, videoWriter, vid_cap, filename != preFilename)
+            preFilename = filename
 
         # view image
         if view_img:  
             cv2.imshow(filename, img)  
             if cv2.waitKey(-1) & 0xFF == ord('q'):
                 break
-    if videoWriter is not None:
-        videoWriter.release()
-        videoWriter = None
+
+
+
+
 
 def parse_opt():
     parser = argparse.ArgumentParser()

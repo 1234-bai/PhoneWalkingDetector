@@ -1,21 +1,22 @@
+import argparse
 from pathlib import Path
 from _utils.PoseTransformer import readJson, writeJson, coco2017Kps2coco2017cut
 import json
 from tqdm import tqdm
 
 def transform(
-    newClassNames = ['phone', 'standing'],
-    oldClass2newClassMap = [0, 0, 0, 0, 1, -1, -1],
+    new_class = ['phone', 'standing'],
+    oldClass2newClassMap = [0, 0, 0, 0, 1, -1, 1],
     oldClassCountThres = ([-1, -1, -1, -1, -1, -1, -1], [-1, -1, -1, -1, -1, -1, -1]),  # 旧有类别限定数量
     skeleonTransformer = None,
-    projectName = 'Mscoco',
+    project_name = 'Mscoco',
     parts = ['train', 'val'],
     input_root_dir = 'D:/_NewCode/PythonPro/st_gcn/st-gcn/stgcnTrainData/Mscoco/exp6',
     output_dir = f'stgcnTrainData/',
 ):
     
-    classNames = newClassNames
-    name = projectName
+    classNames = new_class
+    name = project_name
     input_root_dir = Path(input_root_dir)
     output_dir = Path(output_dir) / name / 'out'
 
@@ -30,7 +31,7 @@ def transform(
             d = readJson(file)
             label_index = d['label_index']
             newLabelIndex = oldClass2newClassMap[label_index]
-            if newLabelIndex == -1: 
+            if newLabelIndex == -1:
                 if filename in inputSumDict:
                     del inputSumDict[filename]
                 continue
@@ -45,11 +46,10 @@ def transform(
                         for psAdsc  in sk:
                             psAdsc['pose'] = skeleonTransformer[0](psAdsc['pose'])
                             psAdsc['score'] = skeleonTransformer[1](psAdsc['score'])
-                if filename in inputSumDict:
-                    inputSumDict[filename]['label_index'] = newLabelIndex
-                    inputSumDict[filename]['label'] = newLabel
+                inputSumDict[filename]['label_index'] = newLabelIndex
+                inputSumDict[filename]['label'] = newLabel
                 writeJson(d, output_dir / input_dir_name, filename + '.json')
-                writeJson(inputSumDict, output_dir, input_json)
+        writeJson(inputSumDict, output_dir, input_json)
 
 
 def recoverJsonDirFromJsonfile(
@@ -75,8 +75,12 @@ def recoverJsonDirFromJsonfile(
 def kineticsFormatMscocoKp2MscococutKp(keypoints):
     return keypoints[:13*2]
 
+
 if __name__ == '__main__':
     transform(
-        # oldClassCountThres=([110, 110, 110, -1, -1, -1, -1], [30, 30, 30, -1, -1, -1]),
-        skeleonTransformer = [kineticsFormatMscocoKp2MscococutKp, coco2017Kps2coco2017cut]
+        new_class=['call', 'oneHand', 'twoHands', 'stand'],
+        oldClass2newClassMap=[0, 1, 2, -1, 3, -1, -1],
+        oldClassCountThres=([-1, -1, 380, -1, -1, -1, -1], [-1, -1, 90, -1, -1, -1, -1]),
+        input_root_dir = 'D:/_NewCode/PythonPro/st_gcn/st-gcn/stgcnTrainData/Mscoco/exp10',
+        # skeleonTransformer = [kineticsFormatMscocoKp2MscococutKp, coco2017Kps2coco2017cut]
     )

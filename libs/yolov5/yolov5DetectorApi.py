@@ -19,7 +19,7 @@ from utils.torch_utils import select_device
 from utils.augmentations import letterbox
 
 
-class TargetsDecetor:
+class TargetsDetector:
 
     def __init__(
             self,
@@ -28,10 +28,10 @@ class TargetsDecetor:
             imgsz=(640, 640),  # inference size (height, width)
             dnn=False,  # use OpenCV DNN for ONNX inference
             half=False,  # use FP16 half-precision inference
-            device=0  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+            device : torch.device = 0  # cuda device, i.e. 0 or 0,1,2,3 or cpu
     ) -> None:
         # Load model
-        device = select_device(device)
+        # device = select_device(device)
         model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
 
         self.stride, self.names, self.pt = model.stride, model.names, model.pt # stride表示的即是模型下采样次数的2的次方，这个涉及感受野的问题，在YOLOV5中下采样次数为5;names目标检测出的类别名字数组

@@ -14,9 +14,9 @@ class ActionEstimation():
 
     def __init__(
         self,
-        weight_file = 'libs\st_gcn\model\epoch70_model.pt',
-        class_names = ['Other', 'Play', 'Call'],
-        layout='halpe_26',
+        weight_file = 'libs/st_gcn/model/stgcn_class7.pt',
+        class_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Photograph', 'Stand', 'Sit', 'Other'],
+        layout='Mscoco',
         device='cuda'
     ):
         graph_args = {
@@ -34,7 +34,7 @@ class ActionEstimation():
         self.model.eval()
         
     
-    def predictSingleCap(self, keypoints, kp_scores, image_size, copy_times=30):
+    def predictSingleCap(self, keypoints, kp_scores, image_size, normed = False, copy_times=30):
         """Predict actions from single person skeleton points and score in a cap.
         Args:
             keypoints: (numpy) points in shape `(v, c)` where
@@ -49,7 +49,7 @@ class ActionEstimation():
         """
 
         pts = [np.concatenate((keypoints, kp_scores), axis=1)] * copy_times     # 骨骼和置信度结合
-        return self.predict(np.array(pts), image_size)
+        return self.predict(np.array(pts), image_size, normed)
     
     def predict(self, pts, image_size, normed=False):
         """Predict actions from single person skeleton points and score in time sequence.

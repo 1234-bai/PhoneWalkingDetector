@@ -1,25 +1,27 @@
 import numpy as np
 import cv2
 
-from _utils.PointsUtils import kepoints2bbox, toBoneboxCoord
+
 from libs.Track.Tracker import Tracker, Detection
-from libs.yolov5.yolov5DetectorApi import TargetsDecetor, TargetsAnnotator
+from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator, select_device
 from libs.yolov5.utils.plots import colors
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 from libs.st_gcn.StgcnApi import ActionEstimation
 from _utils.PoseTransformer import nochange as Dt
+from _utils.PointsUtils import kepoints2bbox, toBoneboxCoord
 
 
+device=select_device(0)
 ae = ActionEstimation(
-    weight_file='libs/st_gcn/model/epoch50_model (2).pt',
-    class_names= ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Photograph', 'Stand', 'Sit', 'Other'],
+    weight_file='libs/st_gcn/model/stgcn_class6_150_p90.pt',
+    class_names= ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'photo', 'Stand', 'other'],
     layout='Mscoco'
 )
 
 poseTest = SingleImagePoseEstimation(
-    configFilePath='libs/Alphapose/configs/coco/resnet/256x192_res50_lr1e-3_1x.yaml',
+    configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
     checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
-    device=0
+    device=device
 )
 
 # poseTest = SingleImagePoseEstimation(
@@ -28,11 +30,12 @@ poseTest = SingleImagePoseEstimation(
 #     device=0
 # )
 
-test =  TargetsDecetor(
+test =  TargetsDetector(
     weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
-    data='libs/yolov5/data/coco128.yaml'
+    data='libs/yolov5/data/coco128.yaml',
+    device=device
 )
-dataset = test.loadData(source='stgcnTrainData/Mscoco/Call')
+dataset = test.loadData(source=0)
 
 tracker = None
 preFilename = ''

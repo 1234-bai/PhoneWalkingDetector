@@ -104,7 +104,7 @@ class Graph():
             neighbor_link = [(i - 1, j - 1) for (i, j) in neighbor_1base]
             self.edge = self_link + neighbor_link
             self.center = 1 - 1
-        elif layout == 'Mscoco_cut':
+        elif layout == 'Mscoco_up':
             self.num_node = 13
             self_link = [(i, i) for i in range(self.num_node)]
             neighbor_1base = [
