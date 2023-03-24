@@ -9,7 +9,7 @@ from libs.yolov5.utils.general import check_requirements, increment_path, print_
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation as PhoneActionEstimation
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation as StandActionEstimation
-from _utils.PointsUtils import pointsAnyInBox
+from _utils.PointsUtils import pointsAnyInBox, xywh2xyxy
 from _utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, \
     coco2017Keypoints2CocoCut as co2cocut, coco2017Keypoints2openposeCoco as cO, nochange as hh
 
@@ -36,10 +36,12 @@ def loadModels(device):
 
     return peoDt, phoneDt, poseEstimation, phoneAe, walkAe
 
-def phoneWalkingActionAstimationOfSingleImage(phoneActionEstimation, walkingActionEstimation,  keypoints, score):
+def phoneWalkingAeOfSingleImage(phoneActionEstimation, walkingActionEstimation,  keypoints, score):
     '''
-        keypoints: not normalizied skeleton keypoints
-        score : confidence of keypoints
+        phoneWalking Action Astimation Of Single Image
+        params:
+            keypoints: not normalizied skeleton keypoints
+            score : confidence of keypoints
     '''
     kp = toBoneboxCoord(co2cocut(keypoints, [17, 2]), norm=True) # normalizied keypoints according to skeletion box
     sit = walkingActionEstimation.predictSingleCap(kp, co2cocut(score, [17,1]), None, normed=True)
@@ -55,14 +57,64 @@ def phoneWalkingActionAstimationOfSingleImage(phoneActionEstimation, walkingActi
         return True
     return False
 
+def phoneWalkingAeOfMultiCaps(phoneActionEstimation, walkingActionEstimation,  tvc):
+    '''
+        phoneWalking Action Astimation Of Single Image
+        params:
+            keypoints: not normalizied skeleton keypoints
+            score : confidence of keypoints
+            tvc:  points and score in shape `(t, v, c)` where
+                t : inputs sequence (time steps).,
+                v : number of graph node (body parts).,
+                c : channel (x, y, score).
+                
+    '''
+    tvc = np.array(tvc)
+    cococutTvc = []
+    for vc in tvc:
+        vc = co2cocut(vc, [17, 3])
+        vc[:,:2] = toBoneboxCoord(vc[:,:2], norm=True)
+        cococutTvc.append(vc)
+    sit = walkingActionEstimation.predict(np.array(cococutTvc), None, normed=True)
+    sit = walkingActionEstimation.getLabel(sit)
+    print(sit)    
+    if sit in ['Sitting', 'Lying Down', 'Sit down', 'Fall Down']:
+        return False
+    for i,vc in enumerate(tvc):
+        tvc[i][:,:2] = toBoneboxCoord(vc[:,:2], norm=True)
+    phone = phoneActionEstimation.predict(tvc, None, normed=True)
+    phone = phoneActionEstimation.getLabel(phone)
+    print(phone)    
+    if phone in ['call', 'PlayWithOneHand', 'PlayWithTwoHands']:
+        return True
+    return False
+
 def phoneInHandnotInEars(keypoints, poseFormat, phoneXyxy):
     wristpoints = keypoints[getBodyPartIndex(poseFormat, 'wrist')]
     earpoints = keypoints[getBodyPartIndex(poseFormat, 'ear')]
     if pointsAnyInBox(earpoints, phoneXyxy):
         return False
-    if pointsAnyInBox(wristpoints, phoneXyxy, 5):
+    if pointsAnyInBox(wristpoints, phoneXyxy, 10):
         return True
     return False
+
+
+def playPhoneDetection(phoneDetecter, peoCrop, cropBox, peoKeypoints, poseType):
+    '''
+        param:
+            cropBox: people crop coord based img box
+        return:
+            phone box based img box
+    '''
+    # (手持)手机检测
+    _, phoneXyxyBoxes,_, _ = phoneDetecter.detectorSingleImg(peoCrop, classes=[0], conf_thres=0.4)
+    if(len(phoneXyxyBoxes)):   # 人像图中存在手机
+        for phoneBox in phoneXyxyBoxes:  # 对于每个手机，是否与人手重合
+            phoneBox += np.array(cropBox)[[0, 1, 0, 1]]
+            if phoneInHandnotInEars(peoKeypoints, poseType, phoneBox):
+                return phoneBox
+    return None
+                
 
 def saveImageOrVeido(savePath, mode, img, videoWriter, videoCap, isNew):
     '''
@@ -108,9 +160,11 @@ def run(
     # load data
     dataset = peoDt.loadData(source=source,vid_stride=vid_stride)
 
+    # values about save 
     save = not nosave
     saveDir = increment_path(save_dir+'/'+name, exist_ok=exist_ok, mkdir=True) if save or save_crop else None
     preFilename = ''
+
     # for per image or per frame(cap)
     for path, _, im0s, vid_cap, _ in dataset:
 
@@ -121,6 +175,12 @@ def run(
         else:
             filename = Path(path).stem
             suffix = Path(path).suffix
+        if preFilename != (filename+suffix):
+            isNew = True
+            preFilename = filename+suffix
+        else:
+            isNew = False
+        
 
         # get original image
         im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
@@ -133,48 +193,82 @@ def run(
         _, peopleXyxyBoxes, crops, confs = peoDt.detectorSingleImg(img, classes=[0])
         if(len(peopleXyxyBoxes) > 0):   # 存在人像
 
-            # if dataset.mode == 'image':
+            if dataset.mode == 'image':
+
                 # 根据人像检测骨骼结点
                 poses = poseEstimation.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
                 # 对每个骨骼结点进行手机检测和动作检测
                 for i,pose in enumerate(poses): #   对于每个人像
+
                     peopleBox = peopleXyxyBoxes[i]  # 获得此人的人像盒子xyxy
                     keypoints = pose['keypoints'] # 获得此人的骨骼结点
                     score = pose['kp_score'] # 获得此人的骨骼结点置信度
 
                     # action estimation
-                    if not phoneWalkingActionAstimationOfSingleImage(phoneAe, walkAe, keypoints, score):
+                    if not phoneWalkingAeOfSingleImage(phoneAe, walkAe, keypoints, score):
                         continue
                     else:
                         actionName = 'phoneWalking'
 
                     # (手持)手机检测
-                    _, phoneXyxyBoxes,_, _ = phoneDt.detectorSingleImg(crops[i], classes=[0], conf_thres=0.4)
-                    if(len(phoneXyxyBoxes)):   # 人像图中存在手机
-                        for phoneBox in phoneXyxyBoxes:  # 对于每个手机，是否与人手重合
-                            phoneBox += np.array(peopleBox)[[0, 1, 0, 1]]
-                            if phoneInHandnotInEars(keypoints, poseEstimation.poseType, phoneBox):
+                    phoneBox = playPhoneDetection(phoneDt, crops[i], peopleBox, keypoints, poseEstimation.poseType)
+                    if phoneBox is not None:
+                        if save_crop:
+                            cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
+                            cv2.imwrite(cropPath, crops[i])
+                        annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
+                        annotator.box_label(phoneBox, label='phone', color=colors(5))
+
+            else:
+
+                if isNew: # new video or first video
+                    poseEstimation.initTracker()
+                    poseStore = []  # peos in last frame
+                
+                poses = poseEstimation.process(im0, peopleXyxyBoxes, confs, tracking=True)
+
+                existedPeo = ([], {}) # peos in now frame
+                for ps in poses:
+                    id = ps['idx']
+                    existedPeo[0].append(id)
+                    existedPeo[1][id] = xywh2xyxy(ps['bbox'])
+                    kp = ps['keypoints']
+                    vc = np.concatenate((kp,ps['kp_score']), axis=1)
+                    try:
+                        poseStore[id].append(vc)
+                    except IndexError:
+                        poseStore.append([vc])
+                for id,tvc in enumerate(poseStore):
+                    if id in existedPeo[0]:
+                        actionName = 'pending'
+                        if len(tvc) > 1:
+                            if not phoneWalkingAeOfMultiCaps(phoneAe, walkAe, tvc):
+                                continue
+                            actionName = 'phoneWalking'
+                            peopleBox = existedPeo[1][id]
+                            crop = save_one_box(peopleBox, im0, save=False, BGR=True)
+                            phoneBox = playPhoneDetection(phoneDt, crop, peopleBox, tvc[-1][:,:2], poseEstimation.poseType)
+                            if phoneBox is not None:
                                 if save_crop:
                                     cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
-                                    save_one_box(peopleBox, im0, file=cropPath, BGR=True)
+                                    cv2.imwrite(cropPath, crop)
                                 annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
                                 annotator.box_label(phoneBox, label='phone', color=colors(5))
-                                break
+                    else:
+                        tvc.clear()
+
 
         img = annotator.result()
-        filename = filename + suffix
         # save image/video
         if save:
-            videoWriter = saveImageOrVeido(saveDir / filename, dataset.mode, img, videoWriter, vid_cap, filename != preFilename)
-            preFilename = filename
+            videoWriter = saveImageOrVeido(saveDir / (filename + suffix), dataset.mode, img, videoWriter, vid_cap, isNew)
 
         # view image
         if view_img:  
             cv2.imshow(filename, img)  
             if cv2.waitKey(-1) & 0xFF == ord('q'):
                 break
-
 
 
 
