@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 from easydict import EasyDict as edict
 
+
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # Alphapose root directory
 if str(ROOT) not in sys.path:
@@ -15,6 +16,9 @@ from alphapose.utils.presets import SimpleTransform
 from alphapose.models import builder
 from alphapose.utils.config import update_config
 from alphapose.utils.vis import getTime
+from trackers.tracker_api import Tracker
+from trackers.tracker_cfg import cfg as tcfg
+from trackers import track
 
 
 class AlphaposeDataTransformer():
@@ -32,6 +36,7 @@ class AlphaposeDataTransformer():
         use_heatmap_loss,
         heatmap_to_coord,
         min_box_area=0, # min box area to filter out
+        tracking = False
     ):
 
         assert(boxes is not None and len(boxes) != 0)
@@ -64,8 +69,9 @@ class AlphaposeDataTransformer():
         preds_img = torch.cat(pose_coords)
         preds_scores = torch.cat(pose_scores)
 
-        boxes, scores, ids, preds_img, preds_scores, pick_ids = \
-                pose_nms(boxes, scores, ids, preds_img, preds_scores, min_box_area, use_heatmap_loss=use_heatmap_loss)
+        if not tracking:
+            boxes, scores, ids, preds_img, preds_scores, pick_ids = \
+                    pose_nms(boxes, scores, ids, preds_img, preds_scores, min_box_area, use_heatmap_loss=use_heatmap_loss)
         
         _result = []
         for k in range(len(scores)):
@@ -109,9 +115,9 @@ class SingleImagePoseEstimation():
 
     def __init__(
         self, 
+        device : torch.device,
         configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
         checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
-        device : torch.device = 0
 ):
 
         cfg = update_config(configFilePath)
@@ -130,11 +136,14 @@ class SingleImagePoseEstimation():
         self.__setTransformation()
         self.__setVisThres()
 
+        # self.tracker = Tracker(tcfg, self.device)
+
     def process(
         self, 
         image, # HWC, BGR
         boxes, 
-        confs, 
+        confs,
+        tracking = False
     ):
         with torch.no_grad():
             assert(image is not None)
@@ -149,18 +158,22 @@ class SingleImagePoseEstimation():
             # Pose Estimation
             inps = inps.to(self.device)
             hm = self.pose_model(inps)
+            # tracking
+            if tracking:
+                boxes,confs,ids,hm,cropped_boxes = track(self.tracker,self.device,inps,boxes,hm,cropped_boxes,confs)
             # transform heatmap data to pose data
             poses = AlphaposeDataTransformer.heatmap2Pose(
                 torch.FloatTensor(boxes), 
                 torch.FloatTensor(cropped_boxes), 
                 torch.FloatTensor(confs), 
-                torch.Tensor(torch.zeros(len(confs))), 
+                ids if tracking  else torch.Tensor(range(len(confs))), 
                 hm,
                 self.cfg.DATA_PRESET.NUM_JOINTS,
                 self.cfg.LOSS.get('NORM_TYPE', None),
                 self.cfg.DATA_PRESET.HEATMAP_SIZE,
                 self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss') == 'MSELoss',
                 get_func_heatmap_to_coord(self.cfg),
+                tracking = tracking
             )
         return poses
 
@@ -196,3 +209,6 @@ class SingleImagePoseEstimation():
             add_dpg=False, 
             gpu_device=self.device
         )
+
+    def initTracker(self):
+        self.tracker = Tracker(tcfg, self.device)

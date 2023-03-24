@@ -44,3 +44,10 @@ def toBoneboxCoord(keypoints, norm=False, extension=5):
     # 求出相对于骨架盒子的(归一化)坐标
     kt = (keypoints - boneBox[:2]) / (boneBox[2:]- boneBox[:2]) if norm else (keypoints - boneBox[:2])
     return kt
+
+
+def xywh2xyxy(box):
+    flag =  isinstance(box, list)
+    if flag: box = np.array(box) 
+    box[2:] = box[:2] + box[2:]
+    return box.tolist() if flag else box 
