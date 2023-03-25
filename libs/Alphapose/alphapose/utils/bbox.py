@@ -3,7 +3,6 @@ from __future__ import division
 import torch
 import numpy as np
 
-
 def bbox_iou(bbox_a, bbox_b, offset=0):
     """Calculate Intersection-Over-Union(IOU) of two bounding boxes.
 

@@ -5,7 +5,6 @@
 
 import torch.nn as nn
 
-
 class DUC(nn.Module):
     '''
     Initialize: inplanes, planes, upscale_factor
