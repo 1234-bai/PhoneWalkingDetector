@@ -114,7 +114,14 @@ def playPhoneDetection(phoneDetecter, peoCrop, cropBox, peoKeypoints, poseType):
             if phoneInHandnotInEars(peoKeypoints, poseType, phoneBox):
                 return phoneBox
     return None
-                
+
+
+def saveCrop(save_crop, saveDir, filename, crop):
+    if save_crop:
+        cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
+        cropPath.parent.mkdir(parents=True, exist_ok=True)
+        assert(cv2.imwrite(cropPath, crop))
+
 
 def saveImageOrVeido(savePath, mode, img, videoWriter, videoCap, isNew):
     '''
@@ -164,6 +171,7 @@ def run(
     save = not nosave
     saveDir = increment_path(save_dir+'/'+name, exist_ok=exist_ok, mkdir=True) if save or save_crop else None
     preFilename = ''
+    videoWriter = None
 
     # for per image or per frame(cap)
     for path, _, im0s, vid_cap, _ in dataset:
@@ -214,9 +222,7 @@ def run(
                     # (手持)手机检测
                     phoneBox = playPhoneDetection(phoneDt, crops[i], peopleBox, keypoints, poseEstimation.poseType)
                     if phoneBox is not None:
-                        if save_crop:
-                            cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
-                            cv2.imwrite(cropPath, crops[i])
+                        saveCrop(save_crop, saveDir, filename, crops[i])
                         annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
                         annotator.box_label(phoneBox, label='phone', color=colors(5))
 
@@ -250,9 +256,7 @@ def run(
                             crop = save_one_box(peopleBox, im0, save=False, BGR=True)
                             phoneBox = playPhoneDetection(phoneDt, crop, peopleBox, tvc[-1][:,:2], poseEstimation.poseType)
                             if phoneBox is not None:
-                                if save_crop:
-                                    cropPath = increment_path(saveDir / 'crop'/ (filename+'.jpg'),sep='_')
-                                    cv2.imwrite(cropPath, crop)
+                                saveCrop(save_crop, saveDir, filename, crop)
                                 annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
                                 annotator.box_label(phoneBox, label='phone', color=colors(5))
                     else:

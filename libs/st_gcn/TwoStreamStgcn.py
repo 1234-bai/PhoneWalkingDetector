@@ -73,7 +73,6 @@ class ActionEstimation():
 
         out = self.model((pts, mot))
         out = out.detach().cpu().numpy()
-        print(out)
         return out[0].argmax() 
 
     def getLabel(self, num_class):

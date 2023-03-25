@@ -51,10 +51,10 @@ class ActionEstimation():
         pts = [np.concatenate((keypoints, kp_scores), axis=1)] * copy_times     # 骨骼和置信度结合
         return self.predict(np.array(pts), image_size, normed)
     
-    def predict(self, pts, image_size, normed=False):
+    def predict(self, tvc, image_size, normed=False):
         """Predict actions from single person skeleton points and score in time sequence.
         Args:
-            pts: (numpy array) points and score in shape `(t, v, c)` where
+            tvc: (numpy array) points and score in shape `(t, v, c)` where
                 t : inputs sequence (time steps).,
                 v : number of graph node (body parts).,
                 c : channel (x, y, score).,
@@ -63,16 +63,15 @@ class ActionEstimation():
             (numpy array) Probability of each class actions.
         """
         if not normed:
-            pts[:, :, :2] = normalize_points_with_size(pts[:, :, :2], image_size[0], image_size[1])
+            tvc[:, :, :2] = normalize_points_with_size(tvc[:, :, :2], image_size[0], image_size[1])
 
-        pts = torch.tensor(pts, dtype=torch.float32)
-        pts = pts.permute(2, 0, 1)[None, :, :, :, None] # N,C,T,V,M
+        tvc = torch.tensor(tvc, dtype=torch.float32)
+        tvc = tvc.permute(2, 0, 1)[None, :, :, :, None] # N,C,T,V,M
 
-        pts = pts.to(self.device)
+        tvc = tvc.to(self.device)
 
-        out = self.model(pts)
+        out = self.model(tvc)
         out = out.detach().cpu().numpy()
-        print(out)
         return out[0].argmax()
 
 
