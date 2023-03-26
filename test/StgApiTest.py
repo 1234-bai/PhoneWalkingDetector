@@ -4,23 +4,23 @@ import sys
 from pathlib import Path
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[1]  # Project root directory: D:\_NewCode\PythonPro\Phone_Walking_Detector
+ROOT = FILE.parents[1]  # Project root directory: D:/_NewCode/PythonPro/Phone_Walking_Detector
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator, select_device
 from libs.yolov5.utils.plots import colors
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
-from libs.st_gcn.TwoStreamStgcn import ActionEstimation
-from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
+from libs.st_gcn.StgcnApi import ActionEstimation
+from _utils.PoseTransformer import nochange as Dt, toBoneboxCoord
 from _utils.PointsUtils import kepoints2bbox, xywh2xyxy
 
 
 device=select_device(0)
 ae = ActionEstimation(
-    # weight_file='libs/st_gcn/model/stgcn_class6_150_p90.pt',
-    # class_names= ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'photo', 'Stand', 'other'],
-    # layout='Mscoco',
+    weight_file='libs/st_gcn/model/stgcn_class3_150_94.pt',
+    class_names= ['nohand', 'oneHand', 'twoHands'],
+    layout='Mscoco',
     device=device
 )
 
@@ -30,18 +30,13 @@ poseTest = SingleImagePoseEstimation(
     device=device
 )
 
-# poseTest = SingleImagePoseEstimation(
-#     configFilePath='libs/Alphapose/configs/halpe_26/resnet/256x192_res50_lr1e-3_1x.yaml',
-#     checkpoint='libs/Alphapose/pretrained_models/halpe26_fast_res50_256x192.pth',
-#     device=0
-# )
 
 test =  TargetsDetector(
     weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-dataset = test.loadData(source=0)
+dataset = test.loadData(source='stgcnTrainData/Mscoco/Call')
 
 preFilename = ''
 for path, _, im0s, vid_cap, s in dataset:
@@ -52,12 +47,12 @@ for path, _, im0s, vid_cap, s in dataset:
     # 获得原始图片
     im0 = im0s[0] if dataset.mode == 'stream' else im0s
 
-    # 注释器（画图器）
-    annotator = TargetsAnnotator(im0, 2)
-
     # 检测人像
     _, peopleXyxyBoxes, crops, confs = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
+
+        # 注释器（画图器）
+        annotator = TargetsAnnotator(im0, 2)
 
         if dataset.mode == 'image':
 
@@ -67,16 +62,17 @@ for path, _, im0s, vid_cap, s in dataset:
             for i,pose in enumerate(poses): #   对于每个人像
                 keypoints = pose['keypoints'] # 获得此人的骨骼结点
                 scores = pose['kp_score'] # 获得此人的骨骼结点置信度
+                peopleBox = xywh2xyxy(pose['bbox'])
                     
                 # 动作检测
                 # 骨骼结点格式转换，与动作检测模型的骨骼结点输入格式匹配
                 kp = Dt(keypoints, [17, 2]) 
                 sc = Dt(scores, [17, 1])
-                boneBox = kepoints2bbox(kp)   # 获得骨架盒子，注意和人体盒子相区分。
-                kp -= boneBox[:2] # 获得相对于自身骨架盒子的坐标
-                actionName = ae.predictSingleCap(kp, sc, boneBox[2:]-boneBox[:2])
+                # boneBox = kepoints2bbox(kp)   # 获得骨架盒子，注意和人体盒子相区分。
+                kp = toBoneboxCoord(kp, norm=True) # 获得相对于自身骨架盒子的坐标
+                actionName = ae.predictSingleCap(kp, sc, None, normed=True)
                     
-                annotator.box_label(peopleXyxyBoxes[i], label=ae.getLabel(actionName), color=colors(0))
+                annotator.box_label(peopleBox, label=ae.getLabel(actionName), color=colors(0))
 
         else:
             if preFilename != filename: # 新的视频或者第一个视频
@@ -108,10 +104,10 @@ for path, _, im0s, vid_cap, s in dataset:
                 else:
                     tvc.clear()
 
+        im0 = annotator.result()
+        im0 = ADt.viewpPoseInImage(im0, poses, poseTest.getVisThres(), tracking=True)
 
-    img = annotator.result()
-    img = ADt.viewpPoseInImage(img, poses, poseTest.getVisThres(), tracking=True)
-    cv2.imshow(str(path), img)
+    cv2.imshow(str(path), im0)
     if cv2.waitKey(0) & 0xFF == ord('q'):
         break
 

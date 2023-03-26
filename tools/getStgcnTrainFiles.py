@@ -1,8 +1,11 @@
-import numpy as np
 import cv2
 from pathlib import Path
-import random
-import os
+import sys
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[1]  # Project root directory: D:\_NewCode\PythonPro\Phone_Walking_Detector
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, select_device
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADT
