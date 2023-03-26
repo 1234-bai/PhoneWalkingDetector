@@ -1,10 +1,19 @@
 import numpy as np
 
-def pointInBox(p, box, ex=0.5):
-    p = [int(x) for x in p]
+def getExtendenBox(box, ex):
     box = np.array(box)
     c = ((box[2:] - box[:2]) * ex)[[0, 1, 0, 1]] * np.array([-1, -1, 1, 1])
-    box = [int(x) for x in (box+c)]
+    return box + c
+
+def pointInBox(p, box, ex=0.5):
+    '''
+        p : coord of points
+        box : xyxy box
+        ex : extended multiple of width and height
+    '''
+    p = [int(x) for x in p]
+    box = getExtendenBox(box, ex)
+    box = [int(x) for x in box]
     return ((p[0] - box[0]) * (p[0] - box[2])) <= 0 and ((p[1] - box[1]) * (p[1] - box[3])) <= 0
 
 

@@ -145,6 +145,9 @@ class SingleImagePoseEstimation():
         confs,
         tracking = False
     ):
+        '''
+            return list of 'keypoints:list , scores:list, box: list of 4' which index is people_number
+        '''
         with torch.no_grad():
             assert(image is not None)
             # pre process cropped human image for pose estimation
