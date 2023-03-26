@@ -17,20 +17,24 @@ from _utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, \
 def loadModels(device):
     # people detector
     peoDt =  TargetsDetector(
-        weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
+        weights='libs/yolov5/weights/yolov5s.pt',
         data='libs/yolov5/data/coco128.yaml',
         device=device
     )
     # phone detector
     phoneDt= TargetsDetector(
-        weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/phone_ep20.pt',
-        data='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/data/phone.yaml',
+        weights='libs/yolov5/weights/phone_ep20.pt',
+        data='libs/yolov5/data/phone.yaml',
         device=device
     )
     # people pose estimation
     poseEstimation = SingleImagePoseEstimation(device=device)
     # action estimation of holding phone with hand(s) 
-    phoneAe = PhoneActionEstimation(device=device)
+    phoneAe = PhoneActionEstimation(
+        weight_file='libs\st_gcn\model\stgcn_class3_150_94.pt',
+        class_names=['nohand', 'oneHand', 'twoHands'],
+        device=device
+    )
     # action estimation of sitting and standing
     walkAe = StandActionEstimation(device=device)
 
@@ -53,9 +57,9 @@ def phoneWalkingAeOfSingleImage(phoneActionEstimation, walkingActionEstimation, 
     phone = phoneActionEstimation.predictSingleCap(kp, score, None, normed=True)
     phone = phoneActionEstimation.getLabel(phone)
     print(phone)    
-    if phone in ['call', 'PlayWithOneHand', 'PlayWithTwoHands']:
-        return True
-    return False
+    if phone == 'nohand':
+        return False
+    return True
 
 def phoneWalkingAeOfMultiCaps(phoneActionEstimation, walkingActionEstimation,  tvc):
     '''
@@ -85,16 +89,16 @@ def phoneWalkingAeOfMultiCaps(phoneActionEstimation, walkingActionEstimation,  t
     phone = phoneActionEstimation.predict(tvc, None, normed=True)
     phone = phoneActionEstimation.getLabel(phone)
     print(phone)    
-    if phone in ['call', 'PlayWithOneHand', 'PlayWithTwoHands']:
-        return True
-    return False
+    if phone == 'nohand':
+        return False
+    return True
 
 def phoneInHandnotInEars(keypoints, poseFormat, phoneXyxy):
     wristpoints = keypoints[getBodyPartIndex(poseFormat, 'wrist')]
     earpoints = keypoints[getBodyPartIndex(poseFormat, 'ear')]
     if pointsAnyInBox(earpoints, phoneXyxy):
         return False
-    if pointsAnyInBox(wristpoints, phoneXyxy, 10):
+    if pointsAnyInBox(wristpoints, phoneXyxy, 1):
         return True
     return False
 
@@ -107,7 +111,7 @@ def playPhoneDetection(phoneDetecter, peoCrop, cropBox, peoKeypoints, poseType):
             phone box based img box
     '''
     # (手持)手机检测
-    _, phoneXyxyBoxes,_, _ = phoneDetecter.detectorSingleImg(peoCrop, classes=[0], conf_thres=0.4)
+    _, phoneXyxyBoxes,_ = phoneDetecter.detectorSingleImg(peoCrop, classes=[0], conf_thres=0.4)
     if(len(phoneXyxyBoxes)):   # 人像图中存在手机
         for phoneBox in phoneXyxyBoxes:  # 对于每个手机，是否与人手重合
             phoneBox += np.array(cropBox)[[0, 1, 0, 1]]
@@ -188,28 +192,27 @@ def run(
             preFilename = filename+suffix
         else:
             isNew = False
-        
 
         # get original image
         im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
         img = im0.copy()
 
-        # annotator（drawer）
-        annotator = TargetsAnnotator(img, line_thickness)
-
         # 检测人像
-        _, peopleXyxyBoxes, crops, confs = peoDt.detectorSingleImg(img, classes=[0])
+        _, peopleXyxyBoxes, confs = peoDt.detectorSingleImg(img, classes=[0])
         if(len(peopleXyxyBoxes) > 0):   # 存在人像
+
+            # annotator（drawer）
+            annotator = TargetsAnnotator(img, line_thickness)
 
             if dataset.mode == 'image':
 
                 # 根据人像检测骨骼结点
-                poses = poseEstimation.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+                poses = poseEstimation.process(img, peopleXyxyBoxes, confs) # 获得骨骼结点 
 
                 # 对每个骨骼结点进行手机检测和动作检测
                 for i,pose in enumerate(poses): #   对于每个人像
 
-                    peopleBox = peopleXyxyBoxes[i]  # 获得此人的人像盒子xyxy
+                    peopleBox = xywh2xyxy(pose['bbox'])  # 获得此人的人像盒子xyxy
                     keypoints = pose['keypoints'] # 获得此人的骨骼结点
                     score = pose['kp_score'] # 获得此人的骨骼结点置信度
 
@@ -220,9 +223,10 @@ def run(
                         actionName = 'phoneWalking'
 
                     # (手持)手机检测
-                    phoneBox = playPhoneDetection(phoneDt, crops[i], peopleBox, keypoints, poseEstimation.poseType)
+                    crop = save_one_box(peopleBox, im0, save=False, BGR=True)
+                    phoneBox = playPhoneDetection(phoneDt, crop, peopleBox, keypoints, poseEstimation.poseType)
                     if phoneBox is not None:
-                        saveCrop(save_crop, saveDir, filename, crops[i])
+                        saveCrop(save_crop, saveDir, filename, crop)
                         annotator.box_label(peopleBox, label=actionName, color=colors(0))   # 深拷贝，会直接在原始图片上进行修改
                         annotator.box_label(phoneBox, label='phone', color=colors(5))
 
@@ -245,6 +249,7 @@ def run(
                         poseStore[id].append(vc)
                     except IndexError:
                         poseStore.append([vc])
+
                 for id,tvc in enumerate(poseStore):
                     if id in existedPeo[0]:
                         actionName = 'pending'
@@ -262,8 +267,9 @@ def run(
                     else:
                         tvc.clear()
 
+            img = annotator.result()
 
-        img = annotator.result()
+
         # save image/video
         if save:
             videoWriter = saveImageOrVeido(saveDir / (filename + suffix), dataset.mode, img, videoWriter, vid_cap, isNew)
