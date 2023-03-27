@@ -11,16 +11,16 @@ if str(ROOT) not in sys.path:
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator, select_device
 from libs.yolov5.utils.plots import colors
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
-from libs.st_gcn.StgcnApi import ActionEstimation
-from _utils.PoseTransformer import nochange as Dt, toBoneboxCoord
-from _utils.PointsUtils import kepoints2bbox, xywh2xyxy
+from libs.st_gcn.TwoStreamStgcn import ActionEstimation
+from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
+from _utils.PointsUtils import xywh2xyxy
 
 
 device=select_device(0)
 ae = ActionEstimation(
-    weight_file='libs/st_gcn/model/stgcn_class3_150_94.pt',
-    class_names= ['nohand', 'oneHand', 'twoHands'],
-    layout='Mscoco',
+    # weight_file='libs/st_gcn/model/class3_p60_exp14.pt',
+    # class_names= ['call', 'one', 'two', 'stand'],
+    # layout='Mscoco',
     device=device
 )
 
@@ -36,7 +36,7 @@ test =  TargetsDetector(
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-dataset = test.loadData(source='stgcnTrainData/Mscoco/Call')
+dataset = test.loadData(source='stgcnTrainData/Mscoco/Sit')
 
 preFilename = ''
 for path, _, im0s, vid_cap, s in dataset:
@@ -48,7 +48,7 @@ for path, _, im0s, vid_cap, s in dataset:
     im0 = im0s[0] if dataset.mode == 'stream' else im0s
 
     # 检测人像
-    _, peopleXyxyBoxes, crops, confs = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
 
         # 注释器（画图器）

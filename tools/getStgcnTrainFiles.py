@@ -76,7 +76,7 @@ for path, _, im0s, vid_cap, s in dataset:
     if(len(peoXyxyBoxes) > 0) :
         poses = poseEst.process(im0, peoXyxyBoxes, confs)
         filename = file.stem
-        im = ADT.viewpPoseInImage(im0, poses, poseEst.__vis_thres__)
+        im = ADT.viewpPoseInImage(im0, poses, poseEst.getVisThres())
         cv2.imshow(filename, im)
         choice =  cv2.waitKey(0) & 0xFF
         cv2.destroyAllWindows()
