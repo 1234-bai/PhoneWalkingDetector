@@ -71,10 +71,10 @@ count = 0
 for path, _, im0s, vid_cap, s in dataset:
 
     im0 = im0s
-    _, peoXyxyBoxes, _, confs= peopleDec.detectorSingleImg(im0, classes=[0], conf_thres=0.45)
+    _, peoXyxyBoxes, _, confs, _= peopleDec.detectorSingleImg(im0, classes=[0], conf_thres=0.45)
     file = Path(path)
     if(len(peoXyxyBoxes) > 0) :
-        poses = poseEst.process(im0, peoXyxyBoxes, confs)
+        poses,_ = poseEst.process(im0, peoXyxyBoxes, confs)
         filename = file.stem
         im = ADT.viewpPoseInImage(im0, poses, poseEst.getVisThres())
         cv2.imshow(filename, im)

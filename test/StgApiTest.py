@@ -8,8 +8,8 @@ ROOT = FILE.parents[1]  # Project root directory: D:/_NewCode/PythonPro/Phone_Wa
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
-from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator, select_device
-from libs.yolov5.utils.plots import colors
+from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
+from libs.yolov5 import colors, LOGGER, select_device
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation
 from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
@@ -17,6 +17,7 @@ from _utils.PointsUtils import xywh2xyxy
 
 
 device=select_device(0)
+
 ae = ActionEstimation(
     # weight_file='libs/st_gcn/model/class3_p60_exp14.pt',
     # class_names= ['call', 'one', 'two', 'stand'],
@@ -30,15 +31,21 @@ poseTest = SingleImagePoseEstimation(
     device=device
 )
 
-
 test =  TargetsDetector(
     weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-dataset = test.loadData(source='stgcnTrainData/Mscoco/Sit')
+source='stgcnTrainData/Mscoco/Sit'
+dataset = test.loadData(source=source)
+
 
 preFilename = ''
+# time
+totalPeTime = 0.0
+totalAeTime = 0.0
+capCount = 0
+
 for path, _, im0s, vid_cap, s in dataset:
     # if dataset.mode == 'image': continue
     # 获得文件名字
@@ -47,8 +54,13 @@ for path, _, im0s, vid_cap, s in dataset:
     # 获得原始图片
     im0 = im0s[0] if dataset.mode == 'stream' else im0s
 
+    # time
+    capCount += 1
+    peTime = 0.0
+    aeTime = 0.0
+
     # 检测人像
-    _, peopleXyxyBoxes, confs = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs, _ = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
 
         # 注释器（画图器）
@@ -57,9 +69,10 @@ for path, _, im0s, vid_cap, s in dataset:
         if dataset.mode == 'image':
 
             # 根据人像检测骨骼结点
-            poses = poseTest.process(im0, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+            poses, time = poseTest.process(im0, peopleXyxyBoxes, confs) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+            peTime += time
 
-            for i,pose in enumerate(poses): #   对于每个人像
+            for pose in poses: #   对于每个人像
                 keypoints = pose['keypoints'] # 获得此人的骨骼结点
                 scores = pose['kp_score'] # 获得此人的骨骼结点置信度
                 peopleBox = xywh2xyxy(pose['bbox'])
@@ -70,18 +83,23 @@ for path, _, im0s, vid_cap, s in dataset:
                 sc = Dt(scores, [17, 1])
                 # boneBox = kepoints2bbox(kp)   # 获得骨架盒子，注意和人体盒子相区分。
                 kp = toBoneboxCoord(kp, norm=True) # 获得相对于自身骨架盒子的坐标
-                actionName = ae.predictSingleCap(kp, sc, None, normed=True)
+                actionName, time = ae.predictSingleCap(kp, sc, None, normed=True)
+                aeTime += time
                     
                 annotator.box_label(peopleBox, label=ae.getLabel(actionName), color=colors(0))
 
         else:
+
             if preFilename != filename: # 新的视频或者第一个视频
                 preFilename = filename
                 # 旧的Tracker在tracker不指向它的时候，被Python垃圾回收机制自动回收
                 poseTest.initTracker()
                 poseStore = []  # 记录的之前帧存在的人员的记录
+
             # 根据人像检测骨骼结点
-            poses = poseTest.process(im0, peopleXyxyBoxes, confs, tracking=True)
+            poses, time = poseTest.process(im0, peopleXyxyBoxes, confs, tracking=True)
+            peTime += time
+
             existedPeo = ([], {}) # 当前帧上现存的人
             for ps in poses:
                 id = ps['idx']
@@ -98,17 +116,24 @@ for path, _, im0s, vid_cap, s in dataset:
                 if id in existedPeo[0]:
                     actionName = 'pending'
                     if len(tvc) >= 5:
-                        actionIndex = ae.predict(np.array(tvc), None, True)
+                        actionIndex, time = ae.predict(np.array(tvc), None, True)
+                        aeTime += time
                         actionName = ae.getLabel(actionIndex)
                     annotator.box_label(existedPeo[1][id], label=str(id)+actionName, color=colors(0))
                 else:
                     tvc.clear()
 
+        
         im0 = annotator.result()
         im0 = ADt.viewpPoseInImage(im0, poses, poseTest.getVisThres(), tracking=True)
 
-    cv2.imshow(str(path), im0)
+    filename = filename.split('\\')[-1]
+    LOGGER.info(f"{filename}\n      pose esatimation time: {peTime * 1E3:.1f}ms")
+    LOGGER.info(f"      action esatimation time: {aeTime * 1E3:.1f}ms")
+    totalAeTime += aeTime
+    totalPeTime += peTime
+    cv2.imshow(filename, im0)
     if cv2.waitKey(0) & 0xFF == ord('q'):
         break
 
-
+LOGGER.info(f"{source}, average process time: {(totalPeTime + totalAeTime) / capCount * 1E3:.1f}ms")

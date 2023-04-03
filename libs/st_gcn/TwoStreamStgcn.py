@@ -1,6 +1,6 @@
-import os
 import torch
 import numpy as np
+import time
 
 from .net.tssg import TwoStreamSpatialTemporalGraph as Model
 
@@ -66,17 +66,21 @@ class ActionEstimation():
 
         pts = torch.tensor(pts, dtype=torch.float32)
         pts = pts.permute(2, 0, 1)[None, :, :, :]
-
         mot = pts[:, :2, 1:, :] - pts[:, :2, :-1, :]    #关键点移动状态
+
+        peTime = time.time()
         mot = mot.to(self.device)
         pts = pts.to(self.device)
-
         out = self.model((pts, mot))
-        out = out.detach().cpu().numpy()
-        return out[0].argmax() 
+        peTime = time.time() - peTime
 
-    def getLabel(self, num_class):
-        assert(num_class >= 0 and num_class < self.count_class)
+        out = out.detach().cpu().numpy()
+
+        return out[0], peTime
+
+    def getLabel(self, model_out):
+        assert(len(model_out) == self.count_class)
+        num_class = model_out.argmax()
         return self.class_names[num_class]
 
 def normalize_points_with_size(xy, width, height, flip=False):

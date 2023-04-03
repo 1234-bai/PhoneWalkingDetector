@@ -1,21 +1,14 @@
 # YOLOv5 APIs 🚀 by QianXmY, GPL-3.0 license
 
-import sys
 from pathlib import Path
 import numpy as np
-
 import torch
 
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # YOLOv5 root directory
-if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from models.common import DetectMultiBackend
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
-from utils.general import (LOGGER, Profile, check_file, check_img_size, non_max_suppression, scale_boxes)
-from utils.plots import Annotator, save_one_box
-from utils.torch_utils import select_device
+from utils.general import (Profile, check_file, check_img_size, non_max_suppression, scale_boxes)
+from utils.plots import Annotator
 from utils.augmentations import letterbox
 
 
@@ -37,7 +30,7 @@ class TargetsDetector:
         self.stride, self.names, self.pt = model.stride, model.names, model.pt # stride表示的即是模型下采样次数的2的次方，这个涉及感受野的问题，在YOLOV5中下采样次数为5;names目标检测出的类别名字数组
         self.model = model
         self.imgsz = check_img_size(imgsz, s=self.stride)  # check image size
-        self.warmedupFlag = False
+        self.__warmedupFlag = False
         self.dt = (Profile(), Profile(), Profile())
 
     def loadData(
@@ -84,14 +77,14 @@ class TargetsDetector:
         # 图片像素点归一化
         with self.dt[0]:
             im = torch.from_numpy(im).to(self.model.device)
-            im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32
+            im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32 
             im /= 255  # 0 - 255 to 0.0 - 1.0
             if len(im.shape) == 3:
                 im = im[None]  # expand for batch dim
 
-        if self.warmedupFlag == False:
+        if self.__warmedupFlag == False:
             self.model.warmup(imgsz=(1, 3, *(self.imgsz)))  # 模型使用前预处理
-            self.warmedupFlag = True
+            self.__warmedupFlag = True
 
         # 预测
         with self.dt[1]:
@@ -102,7 +95,7 @@ class TargetsDetector:
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
         # 一张图片目标检测后会有多类目标被识别出来
-        imc = im0.copy()  # for save_crop
+        # imc = im0.copy()  # for save_crop
         for i, det in enumerate(pred):  # per image，对于每类识别出来的目标
             if len(det):
                 # Rescale boxes from img_size to im0 size
@@ -117,10 +110,7 @@ class TargetsDetector:
                     results[2].append(conf)
                     # results.append((c, torch.tensor(xyxy).tolist(), crop, conf))
 
-        # Print time (inference-only)
-        LOGGER.info(f"{'' if len(det) else '(no detections), '}{self.dt[1].dt * 1E3:.1f}ms")
-
-        return results[0], results[1], results[2]
+        return results[0], results[1], results[2], self.dt[1].dt
     
     def getLabelName(self, c):
         return self.names[c]

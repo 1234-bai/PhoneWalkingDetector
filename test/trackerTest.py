@@ -57,11 +57,11 @@ for path, _, im0s, vid_cap, s in dataset:
     annotator = TargetsAnnotator(im0, 2)
 
     # 检测人像
-    _, peopleXyxyBoxes, confs = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs, _ = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
 
         # 根据人像检测骨骼结点
-        poses = poseTest.process(im0, peopleXyxyBoxes, confs, tracking=True) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+        poses,_ = poseTest.process(im0, peopleXyxyBoxes, confs, tracking=True) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
 
         for i,pose in enumerate(poses): #   对于每个人像
             box = pose['bbox'] # xywh

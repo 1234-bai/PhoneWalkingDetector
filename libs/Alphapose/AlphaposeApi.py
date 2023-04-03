@@ -53,6 +53,7 @@ class AlphaposeDataTransformer():
         pose_coords = []
         pose_scores = []
 
+        time = getTime()
         for i in range(hm.shape[0]):
             bbox = cropped_boxes[i].tolist()
             if isinstance(heatmap_to_coord, list):
@@ -68,10 +69,10 @@ class AlphaposeDataTransformer():
             pose_scores.append(torch.from_numpy(pose_score).unsqueeze(0))
         preds_img = torch.cat(pose_coords)
         preds_scores = torch.cat(pose_scores)
-
         if not tracking:
             boxes, scores, ids, preds_img, preds_scores, pick_ids = \
                     pose_nms(boxes, scores, ids, preds_img, preds_scores, min_box_area, use_heatmap_loss=use_heatmap_loss)
+        _, time = getTime(time)
         
         _result = []
         for k in range(len(scores)):
@@ -83,7 +84,7 @@ class AlphaposeDataTransformer():
                 'bbox':[boxes[k][0], boxes[k][1], boxes[k][2]-boxes[k][0], boxes[k][3]-boxes[k][1]] 
             })
 
-        return _result
+        return _result, time
     
     @staticmethod
     def viewpPoseInImage(
@@ -150,6 +151,7 @@ class SingleImagePoseEstimation():
         '''
         with torch.no_grad():
             assert(image is not None)
+
             # pre process cropped human image for pose estimation
             image = np.array(image, dtype=np.uint8)[:, :, ::-1] # image channel BGR->RGB
             inps = torch.zeros(len(boxes), 3, *(self.transformation._input_size))
@@ -158,14 +160,21 @@ class SingleImagePoseEstimation():
                 inps[i], cropped_box = self.transformation.test_transform(image, box) # box is xyxy, cropped_box is xywh from box
                 # cropped_boxes = torch.FloatTensor([cropped_box])
                 cropped_boxes.append(cropped_box)
+
+            time = getTime()
+
             # Pose Estimation
             inps = inps.to(self.device)
             hm = self.pose_model(inps)
+
             # tracking
             if tracking:
                 boxes,confs,ids,hm,cropped_boxes = track(self.tracker,self.device,inps,boxes,hm,cropped_boxes,confs)
+
+            _, time = getTime(time)
+
             # transform heatmap data to pose data
-            poses = AlphaposeDataTransformer.heatmap2Pose(
+            poses, postProcessTime = AlphaposeDataTransformer.heatmap2Pose(
                 torch.FloatTensor(boxes), 
                 torch.FloatTensor(cropped_boxes), 
                 torch.FloatTensor(confs), 
@@ -178,7 +187,8 @@ class SingleImagePoseEstimation():
                 get_func_heatmap_to_coord(self.cfg),
                 tracking = tracking
             )
-        return poses
+            
+        return poses, time + postProcessTime
 
     def __setVisThres(self):
         # load profile of pose visualize profile
@@ -194,10 +204,10 @@ class SingleImagePoseEstimation():
                 else:
                     hand_face_num = 110
                 vis_thres = [0.4] * (num_joints - hand_face_num) + [0.05] * hand_face_num
-        self.__vis_thres__ = vis_thres
+        self.__vis_thres = vis_thres
 
     def getVisThres(self):
-        return self.__vis_thres__
+        return self.__vis_thres
 
     def __setTransformation(self):
          # load image preprocess transormer

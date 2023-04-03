@@ -86,9 +86,9 @@ def kineticsFormatMscocoKp2MscococutKp(keypoints):
 
 if __name__ == '__main__':
     transform(
-        new_class=['nohand', 'oneHand', 'twohands'],
-        oldClass2newClassMap=[-1, 1, 2, -1, 0, -1, -1],
-        oldClassCountThres=([-1, 360, 360, -1, -1, -1, -1], [-1, -1, 90, -1, -1, -1, -1]),
-        input_root_dir = 'D:/_NewCode/PythonPro/st_gcn/st-gcn/stgcnTrainData/Mscoco/exp10',
+        new_class=['call', 'oneHand', 'twoHands', 'stand'],
+        oldClass2newClassMap=[0, 1, 2, -1, 3, -1, -1],
+        oldClassCountThres=([-1, 360, 360, -1, -1, -1, -1], [-1, -1, 90, -1, 90, -1, -1]),
+        input_root_dir = 'D:/_NewCode/PythonPro/st_gcn/st-gcn/stgcnTrainData/Mscoco/exp6',
         # skeleonTransformer = [kineticsFormatMscocoKp2MscococutKp, coco2017Kps2coco2017cut]
     )

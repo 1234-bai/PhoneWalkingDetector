@@ -1,6 +1,6 @@
-import os
 import torch
 import numpy as np
+import time
 
 from .net.st_gcn import Model
 
@@ -68,15 +68,17 @@ class ActionEstimation():
         tvc = torch.tensor(tvc, dtype=torch.float32)
         tvc = tvc.permute(2, 0, 1)[None, :, :, :, None] # N,C,T,V,M
 
+        ptime = time.time()
         tvc = tvc.to(self.device)
-
         out = self.model(tvc)
+        ptime = time.time() - ptime
         out = out.detach().cpu().numpy()
-        return out[0].argmax()
+        return out[0], ptime
 
 
-    def getLabel(self, num_class):
-        assert(num_class >= 0 and num_class < self.count_class)
+    def getLabel(self, model_out):
+        assert(len(model_out) == self.count_class)
+        num_class = model_out.argmax()
         return self.class_names[num_class]
 
 def normalize_points_with_size(xy, width, height, flip=False):
