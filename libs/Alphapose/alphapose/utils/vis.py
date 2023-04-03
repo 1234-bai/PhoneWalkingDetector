@@ -836,7 +836,6 @@ def vis_frame_skeleton(frame, im_res, smpl_output, opt, vis_thres):
 
 def getTime(time1=0):
     if not time1:
-
         return time.time()
     else:
         interval = time.time() - time1
