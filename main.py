@@ -198,7 +198,7 @@ def run(
     capCount = 0
 
     # for per image or per frame(cap)
-    for path, _, im0s, vid_cap, _ in dataset:
+    for path, _, im0s, vid_cap, infoStr in dataset:
 
         # get filename without suffix and suffix
         if dataset.mode == 'stream':
@@ -297,7 +297,7 @@ def run(
         # end of people detector -----------------------------------------------------------------------
 
         # print time
-        LOGGER.info(f"{filename}\n      people detection :{'' if len(peopleXyxyBoxes) else '(no detections), '}{time * 1E3:.1f}ms")
+        LOGGER.info(f"{infoStr}\n      people detection :{'' if len(peopleXyxyBoxes) else '(no detections), '}{time * 1E3:.1f}ms")
         LOGGER.info(f"      pose estimation: {peTime * 1E3:.1f}ms")
         LOGGER.info(f"      action estimation: {dt[0].t * 1E3:.1f}ms")
         LOGGER.info(f"      phone detection: {dt[1].t * 1E3:.1f}ms")
