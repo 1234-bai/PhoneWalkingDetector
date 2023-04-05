@@ -71,7 +71,7 @@ count = 0
 for path, _, im0s, vid_cap, s in dataset:
 
     im0 = im0s
-    _, peoXyxyBoxes, _, confs, _= peopleDec.detectorSingleImg(im0, classes=[0], conf_thres=0.45)
+    _, peoXyxyBoxes, confs, _= peopleDec.detectSingleImg(im0, classes=[0], conf_thres=0.45)
     file = Path(path)
     if(len(peoXyxyBoxes) > 0) :
         poses,_ = poseEst.process(im0, peoXyxyBoxes, confs)

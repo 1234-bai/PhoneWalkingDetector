@@ -36,7 +36,7 @@ test =  TargetsDetector(
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-source='stgcnTrainData/Mscoco/Sit'
+source='stgcnTrainData/Mscoco/Call'
 dataset = test.loadData(source=source)
 
 
@@ -60,7 +60,7 @@ for path, _, im0s, vid_cap, s in dataset:
     aeTime = 0.0
 
     # 检测人像
-    _, peopleXyxyBoxes, confs, _ = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs, _ = test.detectSingleImg(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
 
         # 注释器（画图器）
@@ -127,8 +127,7 @@ for path, _, im0s, vid_cap, s in dataset:
         im0 = annotator.result()
         im0 = ADt.viewpPoseInImage(im0, poses, poseTest.getVisThres(), tracking=True)
 
-    filename = filename.split('\\')[-1]
-    LOGGER.info(f"{filename}\n      pose esatimation time: {peTime * 1E3:.1f}ms")
+    LOGGER.info(f"{s}\n      pose esatimation time: {peTime * 1E3:.1f}ms")
     LOGGER.info(f"      action esatimation time: {aeTime * 1E3:.1f}ms")
     totalAeTime += aeTime
     totalPeTime += peTime

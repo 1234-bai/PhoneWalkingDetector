@@ -57,7 +57,7 @@ for path, _, im0s, vid_cap, s in dataset:
     annotator = TargetsAnnotator(im0, 2)
 
     # 检测人像
-    _, peopleXyxyBoxes, confs, _ = test.detectorSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs, _ = test.detectSingleImg(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
 
         # 根据人像检测骨骼结点

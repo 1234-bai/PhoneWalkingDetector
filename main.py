@@ -223,7 +223,7 @@ def run(
         capCount += 1
 
         # 检测人像
-        _, peopleXyxyBoxes, confs, time = peoDt.detectorSingleImg(img, classes=[0])
+        _, peopleXyxyBoxes, confs, time = peoDt.detectSingleImg(img, classes=[0])
         
         if(len(peopleXyxyBoxes) > 0):   # 存在人像
 

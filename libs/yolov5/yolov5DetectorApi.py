@@ -58,7 +58,7 @@ class TargetsDetector:
         return dataset
 
 
-    def detectorSingleImg(
+    def detectSingleImg(
         self, 
         im0,
         augment=False,  # augmented inference

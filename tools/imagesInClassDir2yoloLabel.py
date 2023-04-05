@@ -35,7 +35,7 @@ for cls, label in enumerate(label_names):
     for path, _, im0, _, _ in tqdm(dataset, desc=label):
         # im0 = im0s # HWC
         wh = im0.shape[:2][::-1]
-        _, peoXyxyBoxes, confs, _ = peopleDec.detectorSingleImg(im0, classes=[0], conf_thres=0.45)
+        _, peoXyxyBoxes, confs, _ = peopleDec.detectSingleImg(im0, classes=[0], conf_thres=0.45)
         file = Path(path)
         if(len(peoXyxyBoxes) > 0) :
             arg = np.array(confs).argmax()
