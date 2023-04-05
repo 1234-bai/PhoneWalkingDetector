@@ -47,7 +47,7 @@ for path, im0s, vid_cap, s in dataset:
     im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC, BGR
 
     # 检测人像
-    _, peopleXyxyBoxes, confs, _ = test.detectSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs, _ = test.detectSingleImage(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
         
         # 注释器（画图器）
@@ -62,7 +62,7 @@ for path, im0s, vid_cap, s in dataset:
             # keypoints = pose['keypoints']   # (W, H)
             wristpoints = pose['keypoints'][getBodyPartIndex('Mscoco', 'wrist')]
             crop = save_one_box(peopleBox, im0, BGR=True, save=False)
-            _, phoneBoxes, _, _ = phoneTest.detectSingleImg(crop, classes=[0], conf_thres=0.4)
+            _, phoneBoxes, _, _ = phoneTest.detectSingleImage(crop, classes=[0], conf_thres=0.4)
             for phoneBox in phoneBoxes:
                 phoneBox += np.array(peopleBox)[[0, 1, 0, 1]]
                 label = 'true' if pointsAnyInBox(wristpoints, phoneBox, extension) else 'false'

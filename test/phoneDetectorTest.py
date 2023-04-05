@@ -27,7 +27,7 @@ for path, im0s, vid_cap, s in dataset:
     im0 = im0s[0] if dataset.mode == "stream" else im0s
     # 注释器（画图器）
     annotator = TargetsAnnotator(im0, 2)
-    cls, phoneXyxyBoxes, confs, time = phoneTest.detectSingleImg(im0)
+    cls, phoneXyxyBoxes, confs, time = phoneTest.detectSingleImage(im0)
     for i, box in enumerate(phoneXyxyBoxes):
         annotator.box_label(box, phoneTest.getLabelName(cls[i])+str(round(float(confs[i]), 2)), colors(2)) 
     img = annotator.result()

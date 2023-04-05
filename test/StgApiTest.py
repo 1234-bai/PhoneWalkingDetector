@@ -60,7 +60,7 @@ for path, im0s, vid_cap, s in dataset:
     aeTime = 0.0
 
     # 检测人像
-    _, peopleXyxyBoxes, confs, _ = test.detectSingleImg(im0, classes=[0], conf_thres=0.4)
+    _, peopleXyxyBoxes, confs, _ = test.detectSingleImage(im0, classes=[0], conf_thres=0.4)
     if(len(peopleXyxyBoxes) > 0):
 
         # 注释器（画图器）

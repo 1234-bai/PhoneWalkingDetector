@@ -31,7 +31,7 @@ class TargetsDetector:
         self.dt = (Profile(), Profile(), Profile())
 
 
-    def detectSingleImg(
+    def detectSingleImage(
         self, 
         im0,
         augment=False,  # augmented inference
