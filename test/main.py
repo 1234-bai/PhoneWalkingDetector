@@ -122,7 +122,7 @@ def playPhoneDetection(phoneDetecter, peoCrop, cropBox, peoKeypoints, poseType, 
             phone box based img box
     '''
     # (手持)手机检测
-    _, phoneXyxyBoxes,_, time = phoneDetecter.detectorSingleImg(peoCrop, classes=[0], conf_thres=0.4)
+    _, phoneXyxyBoxes,_, time = phoneDetecter.detectSingleImage(peoCrop, classes=[0], conf_thres=0.4)
     dt.t += time
     pB = None
     action = ''
