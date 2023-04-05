@@ -9,12 +9,12 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector
-from libs.yolov5 import select_device
+from libs.yolov5 import select_device, loadData
 from _utils.PointsUtils import xyxy2centerwh
 
 
-input_dir = Path("stgcnTrainData/Mscoco")
-output_dir = Path(f'stgcnTrainData/Mscoco/out')
+input_dir = Path("datasets/stgcnTrainData/Mscoco")
+output_dir = Path(f'datasets/stgcnTrainData/Mscoco/out')
 
 label_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands',  'Stand', 'Sit', 'Photograph','Other'] # 根据动作分类，而不是手机出现的位置
 label_dir = [(output_dir / x) for x in label_names]
@@ -31,7 +31,7 @@ peopleDec =  TargetsDetector(
 
 for cls, label in enumerate(label_names):
 
-    dataset = peopleDec.loadData(source=input_dir / label)
+    dataset = loadData(source=input_dir / label)
     for path, _, im0, _, _ in tqdm(dataset, desc=label):
         # im0 = im0s # HWC
         wh = im0.shape[:2][::-1]

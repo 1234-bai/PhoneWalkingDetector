@@ -19,7 +19,7 @@ def transform(
     project_name = 'Mscoco',
     parts = ['train', 'val'],
     input_root_dir = 'D:/_NewCode/PythonPro/st_gcn/st-gcn/stgcnTrainData/Mscoco/exp6',
-    output_dir = f'stgcnTrainData/',
+    output_dir = f'datasets/stgcnTrainData/',
 ):
     
     classNames = new_class

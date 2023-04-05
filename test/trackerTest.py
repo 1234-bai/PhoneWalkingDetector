@@ -12,7 +12,7 @@ from _utils.PointsUtils import kepoints2bbox, xywh2xyxy
 from _utils.PoseTransformer import nochange as Dt
 from libs.st_gcn.StgcnApi import ActionEstimation
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator, select_device
-from libs.yolov5.utils.plots import colors
+from libs.yolov5 import colors, loadData
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 
 
@@ -40,7 +40,7 @@ test =  TargetsDetector(
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-dataset = test.loadData(source=0)
+dataset = loadData(source=0)
 
 
 for path, _, im0s, vid_cap, s in dataset:

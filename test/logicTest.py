@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
-from libs.yolov5 import colors, select_device, save_one_box
+from libs.yolov5 import colors, select_device, save_one_box, loadData
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 from _utils.PointsUtils import getExtendenBox, pointsAnyInBox, xywh2xyxy
 from _utils.PoseTransformer import getBodyPartIndex
@@ -34,10 +34,10 @@ test =  TargetsDetector(
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-dataset = test.loadData(source='data/images')
 
 
 extension = 0.75
+dataset = loadData(source='datasets/testdata/images')
 for path, _, im0s, vid_cap, s in dataset:
     # if dataset.mode == 'image': continue
     # 获得文件名字

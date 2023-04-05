@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
-from libs.yolov5 import colors, select_device, LOGGER
+from libs.yolov5 import colors, select_device, LOGGER, loadData
 
 phoneTest= TargetsDetector(
     weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\phoneWalk.pt',
@@ -18,7 +18,7 @@ phoneTest= TargetsDetector(
     device=select_device(0)
 )
 
-dataset = phoneTest.loadData(source='data/images')
+dataset = loadData(source='datasets/testdata/images')
 
 totalTime = 0.0
 capCount = 0

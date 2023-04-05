@@ -1,13 +1,10 @@
 # YOLOv5 APIs 🚀 by QianXmY, GPL-3.0 license
 
-from pathlib import Path
 import numpy as np
 import torch
 
-
 from models.common import DetectMultiBackend
-from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
-from utils.general import (Profile, check_file, check_img_size, non_max_suppression, scale_boxes)
+from utils.general import (Profile, check_img_size, non_max_suppression, scale_boxes)
 from utils.plots import Annotator
 from utils.augmentations import letterbox
 
@@ -32,30 +29,6 @@ class TargetsDetector:
         self.imgsz = check_img_size(imgsz, s=self.stride)  # check image size
         self.__warmedupFlag = False
         self.dt = (Profile(), Profile(), Profile())
-
-    def loadData(
-        self,
-        source,  # file/dir/URL/glob/screen/0(webcam)
-        vid_stride=1  # video frame-rate stride 帧率：视频每多少帧截取一次):
-    ):
-        # 区分数据来源 
-        source = str(source)
-        is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
-        is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
-        webcam = source.isnumeric() or source.endswith('.streams') or (is_url and not is_file)
-        screenshot = source.lower().startswith('screen')
-        if is_url and is_file:
-            source = check_file(source)  # download
-        
-        # 加载数据
-        if webcam:
-            dataset = LoadStreams(source, img_size=self.imgsz, stride=self.stride, auto=self.pt, vid_stride=vid_stride)
-        elif screenshot:
-            dataset = LoadScreenshots(source, img_size=self.imgsz, stride=self.stride, auto=self.pt)
-        else:
-            dataset = LoadImages(source, img_size=self.imgsz, stride=self.stride, auto=self.pt, vid_stride=vid_stride)
-
-        return dataset
 
 
     def detectSingleImg(

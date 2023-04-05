@@ -7,7 +7,8 @@ ROOT = FILE.parents[1]  # Project root directory: D:\_NewCode\PythonPro\Phone_Wa
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
-from libs.yolov5.yolov5DetectorApi import TargetsDetector, select_device
+from libs.yolov5.yolov5DetectorApi import TargetsDetector
+from libs.yolov5 import loadData, select_device
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADT
 from _utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
 
@@ -32,7 +33,7 @@ def writePoseJson(poses, label_index, label_name, copyTimes, jsonPath : Path, fi
 
 name = 'Mscoco'
 input_dir = Path("D:/QianXiaoYi/Pictures/Data/normal_images")
-output_dir = Path(f'stgcnTrainData/{name}')
+output_dir = Path(f'datasets/stgcnTrainData/{name}')
 output_train_json_dir = output_dir / (f'{name}_train')
 output_val_json_dir = output_dir / (f'{name}_val')
 output_train_json = f'{name}_train_label.json'
@@ -66,7 +67,7 @@ poseEst = SingleImagePoseEstimation(
     device=device
 )
 
-dataset = peopleDec.loadData(source=input_dir)
+dataset = loadData(source=input_dir)
 count = 0
 for path, _, im0s, vid_cap, s in dataset:
 

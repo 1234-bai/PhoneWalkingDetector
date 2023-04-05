@@ -189,7 +189,7 @@ class _RepeatSampler:
 
 class LoadScreenshots:
     # YOLOv5 screenshot dataloader, i.e. `python detect.py --source "screen 0 100 100 512 256"`
-    def __init__(self, source, img_size=640, stride=32, auto=True, transforms=None):
+    def __init__(self, source):
         # source = [screen_number left top width height] (pixels)
         check_requirements('mss')
         import mss
@@ -202,10 +202,6 @@ class LoadScreenshots:
             left, top, width, height = (int(x) for x in params)
         elif len(params) == 5:
             self.screen, left, top, width, height = (int(x) for x in params)
-        self.img_size = img_size
-        self.stride = stride
-        self.transforms = transforms
-        self.auto = auto
         self.mode = 'stream'
         self.frame = 0
         self.sct = mss.mss()
@@ -226,19 +222,12 @@ class LoadScreenshots:
         im0 = np.array(self.sct.grab(self.monitor))[:, :, :3]  # [:, :, :3] BGRA to BGR
         s = f'screen {self.screen} (LTWH): {self.left},{self.top},{self.width},{self.height}: '
 
-        if self.transforms:
-            im = self.transforms(im0)  # transforms
-        else:
-            im = letterbox(im0, self.img_size, stride=self.stride, auto=self.auto)[0]  # padded resize
-            im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-            im = np.ascontiguousarray(im)  # contiguous
-        self.frame += 1
-        return str(self.screen), im, im0, None, s  # screen, img, original img, im0s, s
+        return str(self.screen), im0, None, s  # screen, img, original img, im0s, s
 
 
 class LoadImages:
     # YOLOv5 image/video dataloader, i.e. `python detect.py --source image.jpg/vid.mp4`
-    def __init__(self, path, img_size=640, stride=32, auto=True, transforms=None, vid_stride=1):
+    def __init__(self, path, vid_stride=1):
         if isinstance(path, str) and Path(path).suffix == '.txt':  # *.txt file with img/vid/dir on each line
             path = Path(path).read_text().rsplit()
         files = []
@@ -257,14 +246,10 @@ class LoadImages:
         videos = [x for x in files if x.split('.')[-1].lower() in VID_FORMATS]
         ni, nv = len(images), len(videos)
 
-        self.img_size = img_size
-        self.stride = stride
         self.files = images + videos
         self.nf = ni + nv  # number of files
         self.video_flag = [False] * ni + [True] * nv
         self.mode = 'image'
-        self.auto = auto
-        self.transforms = transforms  # optional
         self.vid_stride = vid_stride  # video frame-rate stride
         if any(videos):
             self._new_video(videos[0])  # new video
@@ -308,14 +293,8 @@ class LoadImages:
             assert im0 is not None, f'Image Not Found {path}'
             s = f'image {self.count}/{self.nf} {path}: '
 
-        if self.transforms:
-            im = self.transforms(im0)  # transforms
-        else:
-            im = letterbox(im0, self.img_size, stride=self.stride, auto=self.auto)[0]  # padded resize
-            im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-            im = np.ascontiguousarray(im)  # contiguous
 
-        return path, im, im0, self.cap, s
+        return path, im0, self.cap, s
 
     def _new_video(self, path):
         # Create a new video capture object
@@ -341,11 +320,9 @@ class LoadImages:
 
 class LoadStreams:
     # YOLOv5 streamloader, i.e. `python detect.py --source 'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP streams`
-    def __init__(self, sources='file.streams', img_size=640, stride=32, auto=True, transforms=None, vid_stride=1):
+    def __init__(self, sources='file.streams', vid_stride=1):
         torch.backends.cudnn.benchmark = True  # faster for fixed-size inference
         self.mode = 'stream'
-        self.img_size = img_size
-        self.stride = stride
         self.vid_stride = vid_stride  # video frame-rate stride
         sources = Path(sources).read_text().rsplit() if os.path.isfile(sources) else [sources]
         n = len(sources)
@@ -377,13 +354,6 @@ class LoadStreams:
             self.threads[i].start()
         LOGGER.info('')  # newline
 
-        # check for common shapes
-        s = np.stack([letterbox(x, img_size, stride=stride, auto=auto)[0].shape for x in self.imgs])
-        self.rect = np.unique(s, axis=0).shape[0] == 1  # rect inference if all shapes equal
-        self.auto = auto and self.rect
-        self.transforms = transforms  # optional
-        if not self.rect:
-            LOGGER.warning('WARNING ⚠️ Stream shapes differ. For optimal performance supply similarly-shaped streams.')
 
     def update(self, i, cap, stream):
         # Read stream `i` frames in daemon thread
@@ -412,14 +382,8 @@ class LoadStreams:
             raise StopIteration
 
         im0 = self.imgs.copy()
-        if self.transforms:
-            im = np.stack([self.transforms(x) for x in im0])  # transforms
-        else:
-            im = np.stack([letterbox(x, self.img_size, stride=self.stride, auto=self.auto)[0] for x in im0])  # resize
-            im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW
-            im = np.ascontiguousarray(im)  # contiguous
 
-        return self.sources, im, im0, None, ''
+        return self.sources, im0, None, ''
 
     def __len__(self):
         return len(self.sources)  # 1E12 frames = 32 streams at 30 FPS for 30 years

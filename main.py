@@ -6,7 +6,8 @@ import numpy as np
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import (
         colors, save_one_box, check_requirements, increment_path, print_args, select_device, 
-        LOGGER, Profile
+        LOGGER, Profile,
+        loadData
     )
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation as PhoneActionEstimation
@@ -185,7 +186,7 @@ def run(
     peoDt, phoneDt, poseEstimation, phoneAe, walkAe = loadModels(device)
     
     # load data
-    dataset = peoDt.loadData(source=source,vid_stride=vid_stride)
+    dataset = loadData(source=source,vid_stride=vid_stride)
 
     # values about save 
     save = not nosave

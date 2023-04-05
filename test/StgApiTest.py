@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
-from libs.yolov5 import colors, LOGGER, select_device
+from libs.yolov5 import colors, LOGGER, select_device, loadData
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation
 from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
@@ -36,8 +36,8 @@ test =  TargetsDetector(
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-source='stgcnTrainData/Mscoco/Call'
-dataset = test.loadData(source=source)
+source='datasets/stgcnTrainData/Mscoco/Call'
+dataset = loadData(source=source)
 
 
 preFilename = ''
