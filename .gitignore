@@ -10,10 +10,8 @@ runs/
 *.pth
 *.pt
 
-# config
-*.cfg
-*.yaml
-*.json
+# vscode debug
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
