@@ -59,4 +59,12 @@ def xywh2xyxy(box):
     flag =  isinstance(box, list)
     if flag: box = np.array(box) 
     box[2:] = box[:2] + box[2:]
-    return box.tolist() if flag else box 
+    return box.tolist() if flag else box
+
+
+def xyxy2centerwh(box):
+    flag =  isinstance(box, list)
+    if flag: box = np.array(box)
+    box[2:] -= box[:2]  # xywh
+    box[:2] += (box[2:] / 2) # centerX, centerY, w, h
+    return box.tolist() if flag else box

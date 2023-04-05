@@ -104,10 +104,10 @@ class TargetsDetector:
                 # 每类识别目标有多个
                 for *xyxy, conf, cls in reversed(det): # 对于特定一类检测目标的多个
                     # crop = save_one_box(xyxy, imc, save=False, BGR=True)
-                    results[0].append(int(cls))
+                    results[0].append(int(cls.cpu()))
                     results[1].append(torch.tensor(xyxy).tolist())
                     # results[2].append(crop)
-                    results[2].append(conf)
+                    results[2].append(conf.cpu())
                     # results.append((c, torch.tensor(xyxy).tolist(), crop, conf))
 
         return results[0], results[1], results[2], self.dt[1].dt

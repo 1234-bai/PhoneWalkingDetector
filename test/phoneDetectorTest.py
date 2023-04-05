@@ -13,8 +13,8 @@ from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, select_device, LOGGER
 
 phoneTest= TargetsDetector(
-    weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\phone_ep20.pt',
-    data='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\data\phone.yaml',
+    weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\phoneWalk.pt',
+    data='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\data\phoneWalk.yaml',
     device=select_device(0)
 )
 
@@ -27,11 +27,11 @@ for path, _, im0s, vid_cap, s in dataset:
     im0 = im0s[0] if dataset.mode == "stream" else im0s
     # 注释器（画图器）
     annotator = TargetsAnnotator(im0, 2)
-    _, phoneXyxyBoxes, confs, time = phoneTest.detectorSingleImg(im0, classes=[0])
+    cls, phoneXyxyBoxes, confs, time = phoneTest.detectorSingleImg(im0)
     for i, box in enumerate(phoneXyxyBoxes):
-        annotator.box_label(box, str(round(float(confs[i]), 2)), colors(2))
+        annotator.box_label(box, phoneTest.getLabelName(cls[i])+str(round(float(confs[i]), 2)), colors(2)) 
     img = annotator.result()
-    LOGGER.info(f'process time:{time * 1E3:.1f}ms')
+    LOGGER.info(f'{s} {time * 1E3:.1f}ms')
     totalTime += time
     cv2.imshow(str(path), img)
     if cv2.waitKey(0) & 0xFF == ord('q'):
