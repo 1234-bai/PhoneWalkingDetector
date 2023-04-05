@@ -22,7 +22,7 @@ dataset = loadData(source='datasets/testdata/images')
 
 totalTime = 0.0
 capCount = 0
-for path, _, im0s, vid_cap, s in dataset:
+for path, im0s, vid_cap, s in dataset:
     capCount += 1
     im0 = im0s[0] if dataset.mode == "stream" else im0s
     # 注释器（画图器）

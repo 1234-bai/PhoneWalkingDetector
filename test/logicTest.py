@@ -38,7 +38,7 @@ test =  TargetsDetector(
 
 extension = 0.75
 dataset = loadData(source='datasets/testdata/images')
-for path, _, im0s, vid_cap, s in dataset:
+for path, im0s, vid_cap, s in dataset:
     # if dataset.mode == 'image': continue
     # 获得文件名字
     filename = path[0] if dataset.mode == 'stream' else path

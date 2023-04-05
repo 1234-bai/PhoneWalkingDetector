@@ -43,7 +43,7 @@ test =  TargetsDetector(
 dataset = loadData(source=0)
 
 
-for path, _, im0s, vid_cap, s in dataset:
+for path, im0s, vid_cap, s in dataset:
 
     if dataset.mode == 'image': continue
 

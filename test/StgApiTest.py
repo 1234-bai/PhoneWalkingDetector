@@ -46,7 +46,7 @@ totalPeTime = 0.0
 totalAeTime = 0.0
 capCount = 0
 
-for path, _, im0s, vid_cap, s in dataset:
+for path, im0s, vid_cap, s in dataset:
     # if dataset.mode == 'image': continue
     # 获得文件名字
     filename = path[0] if dataset.mode == 'stream' else path
