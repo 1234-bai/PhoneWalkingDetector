@@ -56,7 +56,7 @@ def run(
 
     # values about save 
     save = not nosave
-    saveDir = increment_path(save_dir+'/'+name, exist_ok=exist_ok, mkdir=True) if save or save_crop else None
+    save_dir = increment_path(save_dir+'/'+name, exist_ok=exist_ok, mkdir=True) if save or save_crop else None
     preFilename = ''
     videoWriter = None
 
@@ -86,10 +86,10 @@ def run(
         # time recorder
         capCount += 1
 
-        labelIdxs, targetBoxes, crops, img, times = pwd.detectSingleImage(im0, dataset.mode, isNew, line_thickness)
+        labelIds, _, _, crops, img, times = pwd.detectSingleImage(im0, dataset.mode, isNew, line_thickness = line_thickness)
 
         # print time
-        LOGGER.info(f"{infoStr}\n      people detection :{'' if len(labelIdxs) else '(no detections), '}{times[0] * 1E3:.1f}ms")
+        LOGGER.info(f"{infoStr}\n      people detection :{'' if len(labelIds) else '(no detections), '}{times[0] * 1E3:.1f}ms")
         LOGGER.info(f"      pose estimation: {times[1] * 1E3:.1f}ms")
         LOGGER.info(f"      action estimation: {times[2] * 1E3:.1f}ms")
         LOGGER.info(f"      phone detection: {times[2] * 1E3:.1f}ms")
@@ -97,22 +97,22 @@ def run(
 
         if save_crop:
             for i, crop in enumerate(crops):
-                saveCrop(saveDir, pwd.getLabel(labelIdxs[i*2]), filename, crop)
+                saveCrop(save_dir, pwd.getLabel(labelIds[i]), filename, crop)
 
         # save image/video
         if save:
-            videoWriter = saveImageOrVeido(saveDir / (filename + suffix), dataset.mode, img, videoWriter, vid_cap, isNew)
+            videoWriter = saveImageOrVeido(save_dir / (filename + suffix), dataset.mode, img, videoWriter, vid_cap, isNew)
 
         # view image
         if view_img:  
-            cv2.imshow(filename, img)  
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.imshow(filename, img)
+            if cv2.waitKey(-1) & 0xFF == ord('q'):
                 break
 
     # ending of for ---------------------------------------------------------------------------------
 
     LOGGER.info(f"{source}, average process time: {totalTime / capCount * 1E3:.1f}ms")
-    if save or save_crop: LOGGER.info(f"results save to f{save_dir}")
+    if save or save_crop: LOGGER.info(f"results save to {save_dir}")
 
 
 
