@@ -36,7 +36,7 @@ class TargetsDetector:
         im0,
         augment=False,  # augmented inference
         conf_thres=0.5,  # confidence threshold 置信度阈值
-        iou_thres=0.45,  # NMS IOU threshold
+        iou_thres=0.45,  # NMS IOU threshold 非极大值抑制的交并比阈值
         classes=None,  # filter by class: --class 0, or --class 0 2 3 类别过滤器，只识别给出的类别编号，和配置文件中的类别编号相对应
         agnostic_nms=False,  # class-agnostic NMS
         max_det=1000,  # maximum detections per image 每张图片目标检测的最大数量
@@ -69,7 +69,8 @@ class TargetsDetector:
 
         # 一张图片目标检测后会有多类目标被识别出来
         # imc = im0.copy()  # for save_crop
-        for i, det in enumerate(pred):  # per image，对于每类识别出来的目标
+        for det in pred:  # per image，对于每类识别出来的目标
+            # det : N * (x1, y1, x2, y2, conf, class)
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -80,7 +81,7 @@ class TargetsDetector:
                     results[0].append(int(cls.cpu()))
                     results[1].append(torch.tensor(xyxy).tolist())
                     # results[2].append(crop)
-                    results[2].append(conf.cpu())
+                    results[2].append(float(conf.cpu()))
                     # results.append((c, torch.tensor(xyxy).tolist(), crop, conf))
 
         return results[0], results[1], results[2], self.dt[1].dt

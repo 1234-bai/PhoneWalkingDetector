@@ -150,16 +150,16 @@ class ConfusionMatrix:
         detections = detections[detections[:, 4] > self.conf]
         gt_classes = labels[:, 0].int()
         detection_classes = detections[:, 5].int()
-        iou = box_iou(labels[:, 1:], detections[:, :4])
+        iou = box_iou(labels[:, 1:], detections[:, :4]) # 获得每个矩形交并比的笛卡尔矩阵
 
-        x = torch.where(iou > self.iou_thres)
+        x = torch.where(iou > self.iou_thres)   # 筛选出交并比大于0.45的坐标
         if x[0].shape[0]:
-            matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy()
+            matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy() # 将坐标，交并比连接在一起
             if x[0].shape[0] > 1:
-                matches = matches[matches[:, 2].argsort()[::-1]]
-                matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                matches = matches[matches[:, 2].argsort()[::-1]]
-                matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+                matches = matches[matches[:, 2].argsort()[::-1]]    # 按照交并比大小从大往小排
+                matches = matches[np.unique(matches[:, 1], return_index=True)[1]]   # 根据矩阵横坐标去重
+                matches = matches[matches[:, 2].argsort()[::-1]] # 按照交并比大小从大往小排
+                matches = matches[np.unique(matches[:, 0], return_index=True)[1]] # 根据矩阵横坐标去重
         else:
             matches = np.zeros((0, 3))
 
