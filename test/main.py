@@ -61,7 +61,7 @@ def phoneWalkingAeOfSingleImage(phoneActionEstimation, walkingActionEstimation, 
     sit = walkingActionEstimation.getLabel(sit)  
     if sit in ['Sitting', 'Lying Down', 'Sit down', 'Fall Down']:
         return False
-    kp = toBoneboxCoord(keypoints, norm=True)
+    kp = toBoneboxCoord(keypoints, norm=True) - 0.5    # normalization and centralization
     phone, phoneTime = phoneActionEstimation.predictSingleCap(kp, score, None, normed=True)
     dt.t += phoneTime
     phone = phoneActionEstimation.getLabel(phone)
@@ -93,7 +93,7 @@ def phoneWalkingAeOfMultiCaps(phoneActionEstimation, walkingActionEstimation,  t
     if sit in ['Sitting', 'Lying Down', 'Sit down', 'Fall Down']:
         return False
     for i,vc in enumerate(tvc):
-        tvc[i][:,:2] = toBoneboxCoord(vc[:,:2], norm=True)
+        tvc[i][:,:2] = toBoneboxCoord(vc[:,:2], norm=True) - 0.5    # normalization and centralization
     phone, phoneTime = phoneActionEstimation.predict(tvc, None, normed=True)
     phone = phoneActionEstimation.getLabel(phone)
     dt.t += phoneTime

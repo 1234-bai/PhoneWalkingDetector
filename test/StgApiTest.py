@@ -19,8 +19,8 @@ from _utils.PointsUtils import xywh2xyxy
 device=select_device(0)
 
 ae = ActionEstimation(
-    # weight_file='libs/st_gcn/model/class3_p60_exp14.pt',
-    # class_names= ['call', 'one', 'two', 'stand'],
+    # weight_file='libs/st_gcn/model/stgcn_class3_150_94_ex9.pt',
+    # class_names= ['no', 'one', 'two'],
     # layout='Mscoco',
     device=device
 )
@@ -36,7 +36,7 @@ test =  TargetsDetector(
     data='libs/yolov5/data/coco128.yaml',
     device=device
 )
-source='datasets/stgcnTrainData/Mscoco/Call'
+source='datasets/testdata/images'
 dataset = loadData(source=source)
 
 
@@ -83,7 +83,7 @@ for path, im0s, vid_cap, s in dataset:
                 sc = Dt(scores, [17, 1])
                 # boneBox = kepoints2bbox(kp)   # 获得骨架盒子，注意和人体盒子相区分。
                 kp = toBoneboxCoord(kp, norm=True) # 获得相对于自身骨架盒子的坐标
-                actionName, time = ae.predictSingleCap(kp, sc, None, normed=True)
+                actionName, time = ae.predictSingleCap(kp-0.5, sc, None, normed=True)
                 aeTime += time
                     
                 annotator.box_label(peopleBox, label=ae.getLabel(actionName), color=colors(0))
