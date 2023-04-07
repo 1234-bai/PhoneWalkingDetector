@@ -226,7 +226,7 @@ class PhoneWalkDetector:
                     actionId = np.array(conf).argmax()
                     if conf[actionId] >= conf_thres:
                         self.drawPlayphoneAndCall(annotator, peopleBox, phoneBox, actionId, conf[actionId])
-                        fillResults(crop, peopleBox, actionId, conf)
+                        fillResults(crop, peopleBox, actionId, conf[actionId])
             else:
 
                 if isNew: # new video or first video
@@ -262,7 +262,7 @@ class PhoneWalkDetector:
                             actionId = np.array(conf).argmax()
                             if conf[actionId] >= conf_thres:
                                 self.drawPlayphoneAndCall(annotator, peopleBox, phoneBox, actionId, conf[actionId])
-                                fillResults(crop, peopleBox, actionId, conf)
+                                fillResults(crop, peopleBox, actionId, conf[actionId])
                     else:
                         tvc.clear()
 
