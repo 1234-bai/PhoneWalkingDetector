@@ -79,9 +79,9 @@ class AlphaposeDataTransformer():
             _result.append({
                 'keypoints':preds_img[k],
                 'kp_score':preds_scores[k],
-                'proposal_score': torch.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),
+                'proposal_score': (torch.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k])) / 3,
                 'idx':ids[k],
-                'bbox':[boxes[k][0], boxes[k][1], boxes[k][2]-boxes[k][0], boxes[k][3]-boxes[k][1]] 
+                'bbox':[boxes[k][0], boxes[k][1], boxes[k][2]-boxes[k][0], boxes[k][3]-boxes[k][1]]
             })
 
         return _result, time

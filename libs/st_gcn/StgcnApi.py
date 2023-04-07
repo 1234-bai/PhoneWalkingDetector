@@ -72,14 +72,16 @@ class ActionEstimation():
         tvc = tvc.to(self.device)
         out = self.model(tvc)
         ptime = time.time() - ptime
-        out = out.detach().cpu().numpy()
-        return out[0], ptime
+        out = out.detach().cpu()
+        out = torch.softmax(out, 1)
+        return out.numpy()[0], ptime
 
 
     def getLabel(self, model_out):
         assert(len(model_out) == self.count_class)
         num_class = model_out.argmax()
         return self.class_names[num_class]
+    
 
 def normalize_points_with_size(xy, width, height, flip=False):
     """Normalize scale points in image with size of image to (0-1).

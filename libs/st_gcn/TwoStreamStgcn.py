@@ -16,11 +16,12 @@ class ActionEstimation():
         weight_file = 'libs\st_gcn\model\st-gcn-tsstg-fail-model.pth',
         class_names = ['Standing', 'Walking', 'Sitting', 'Lying Down',
                             'Stand up', 'Sit down', 'Fall Down'],
+        layout = 'coco_cut',
         device='cuda'
     ):
         graph_args = {
             'strategy': 'spatial',
-            'layout' : 'coco_cut',
+            'layout' : layout,
         }
         self.count_class = len(class_names)
         edge_importance_weighting = True
@@ -74,9 +75,9 @@ class ActionEstimation():
         out = self.model((pts, mot))
         peTime = time.time() - peTime
 
-        out = out.detach().cpu().numpy()
-
-        return out[0], peTime
+        out = out.detach().cpu()
+        out = out[0] / sum(out[0])
+        return out.numpy(), peTime
 
     def getLabel(self, model_out):
         assert(len(model_out) == self.count_class)
