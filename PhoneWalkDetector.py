@@ -12,7 +12,7 @@ from _utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Key
 
 class PhoneWalkDetector:
 
-    def __init__(self, device):
+    def __init__(self, device = ''):
         device = select_device(device)
         self.__loadModels(device)
 
@@ -99,7 +99,7 @@ class PhoneWalkDetector:
         phoneActionEstimation = self.phoneAe
         out, time = phoneActionEstimation.predict(tvc, None, normed=True)   
         dt.t += time
-        conf = [*(conf[0] * out), conf[1]]    # conf: (no play, play with one, play with two)
+        conf = [*(conf[0] * out), conf[1]]    # conf: (no play, play with one, play with two, other)
         # phone = phoneActionEstimation.getLabel(phone)
         # if phone == 'nohand':
         #     return False
@@ -155,23 +155,28 @@ class PhoneWalkDetector:
             phoneConf   # (play, call, other)
         ):
         pwConf = peoplePoseConf * np.array(phoneWalkingConf)
-        conf = np.concatenate((pwConf[:3], [1 - peoplePoseConf + pwConf[3]]))   # (no play, one, two, other)
+        conf = np.concatenate((pwConf[:3], [1 - peoplePoseConf + pwConf[3]]))   # (stand, one, two, other)
         # total confidence
-        conf = [(conf[1]+conf[2]) * phoneConf[0], conf[1] * phoneConf[1]]
-        conf = [*conf, 1.0-sum(conf)]   # (play, call, other)
+        conf = [
+            conf[1] * phoneConf[1], # call = one * call
+            conf[1] * phoneConf[0], # playWithOneHand = one * play
+            conf[2] * (phoneConf[0] + phoneConf[1]), # playWithTwoHands = two * (play + call)
+            conf[0] + (conf[1] + conf[2]) * phoneConf[2] # stand = stand + one * other + two * other
+        ]   # (call, playWithOneHand, playWithTwoHands, stand)
+        conf = [*conf, 1.0-sum(conf)]   # (call, playWithOneHand, playWithTwoHands, stand, other)
         return conf
 
 
     def drawPlayphoneAndCall(self, annotator, peopleBox, phoneBox, actionId, conf):
         red_bgr = (0, 0, 256)
         black_bgr = (0, 0, 0)
-        color = red_bgr if actionId == 0 else colors(0)
+        color = red_bgr if actionId == 1 or actionId == 2 else colors(0)
         annotator.box_label(peopleBox, label=self.getLabel(actionId)+f':{conf:.2f}', color=color)   # 深拷贝，会直接在原始图片上进行修改
         if phoneBox is not None:
             annotator.box_label(phoneBox, label='phone', color=colors(5), txt_color=black_bgr)
 
 
-    def detectSingleImage(self, im0, mode, isNew, conf_thres = 0.0, line_thickness = 2):
+    def detectSingleImage(self, im0, mode, isNew, conf_thres = 0.3, line_thickness = 2):
 
         targetBoxes = []
         crops = []
@@ -271,4 +276,5 @@ class PhoneWalkDetector:
         return labelIds, targetBoxes, confs, crops, img, [time, peTime, dt[0].t, dt[1].t]
 
     def getLabel(self, cls):
-        return ['phoneWalking', 'call', 'other'][cls]
+        # return ['phoneWalking', 'call', 'other'][cls]
+        return ['call', 'playWithOneHand', 'playWithTwoHands', 'stand', 'other'][cls]
