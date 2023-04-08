@@ -33,7 +33,7 @@ def writePoseJson(poses, label_index, label_name, copyTimes, jsonPath : Path, fi
 
 name = 'Mscoco'
 input_dir = Path("D:/QianXiaoYi/Pictures/Data/normal_images")
-output_dir = Path(f'datasets/stgcnTrainData/{name}')
+output_dir = Path(f'datasets/TrainData/{name}')
 output_train_json_dir = output_dir / (f'{name}_train')
 output_val_json_dir = output_dir / (f'{name}_val')
 output_train_json = f'{name}_train_label.json'
@@ -69,7 +69,7 @@ poseEst = SingleImagePoseEstimation(
 
 dataset = loadData(source=input_dir)
 count = 0
-for path, _, im0s, vid_cap, s in dataset:
+for path, im0s, vid_cap, s in dataset:
 
     im0 = im0s
     _, peoXyxyBoxes, confs, _= peopleDec.detectSingleImage(im0, classes=[0], conf_thres=0.45)
