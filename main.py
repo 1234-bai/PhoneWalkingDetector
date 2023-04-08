@@ -2,8 +2,8 @@ import argparse
 import cv2
 from pathlib import Path
 
-from libs.yolov5 import increment_path, print_args, LOGGER, loadData
-from PhoneWalkDetector import PhoneWalkDetector
+from libs.yolov5 import increment_path, print_args, LOGGER, loadData, check_requirements
+from detectors.PhoneWalkDetector import PhoneWalkDetector
 
 
 def saveCrop(saveDir, actionname, filename, crop):
@@ -92,7 +92,7 @@ def run(
         LOGGER.info(f"{infoStr}\n      people detection :{'' if len(labelIds) else '(no detections), '}{times[0] * 1E3:.1f}ms")
         LOGGER.info(f"      pose estimation: {times[1] * 1E3:.1f}ms")
         LOGGER.info(f"      action estimation: {times[2] * 1E3:.1f}ms")
-        LOGGER.info(f"      phone detection: {times[2] * 1E3:.1f}ms")
+        LOGGER.info(f"      phone detection: {times[3] * 1E3:.1f}ms")
         totalTime += sum(times)
 
         if save_crop:

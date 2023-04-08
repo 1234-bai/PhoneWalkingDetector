@@ -34,11 +34,11 @@ class TargetsDetector:
     def detectSingleImage(
         self, 
         im0,
-        augment=False,  # augmented inference
+        # augment=False,  # augmented inference
         conf_thres=0.5,  # confidence threshold 置信度阈值
-        iou_thres=0.45,  # NMS IOU threshold 非极大值抑制的交并比阈值
+        # iou_thres=0.45,  # NMS IOU threshold 非极大值抑制的交并比阈值
         classes=None,  # filter by class: --class 0, or --class 0 2 3 类别过滤器，只识别给出的类别编号，和配置文件中的类别编号相对应
-        agnostic_nms=False,  # class-agnostic NMS
+        # agnostic_nms=False,  # class-agnostic NMS
         max_det=1000,  # maximum detections per image 每张图片目标检测的最大数量
     ):
 
@@ -61,11 +61,11 @@ class TargetsDetector:
 
         # 预测
         with self.dt[1]:
-            pred = self.model(im, augment=augment, visualize=False)  
+            pred = self.model(im, augment=False, visualize=False)  
 
         # NMS
         with self.dt[2]:
-            pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+            pred = non_max_suppression(pred, conf_thres, iou_thres=0.45, classes = classes, agnostic = False, max_det=max_det)
 
         # 一张图片目标检测后会有多类目标被识别出来
         # imc = im0.copy()  # for save_crop
