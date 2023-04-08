@@ -10,7 +10,8 @@ from utils.torch_utils import select_device
 from utils.plots import colors, save_one_box
 from utils.general import check_file, check_requirements, increment_path, print_args, LOGGER, Profile
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
-
+from LoadImageAndLabels import LoadImagesAndLabels
+from utils.metrics import ConfusionMatrix
 
 
 def loadData(
@@ -45,4 +46,5 @@ __all__ = [
     select_device, loadData, 
     colors, save_one_box, increment_path, 
     LOGGER, Profile, print_args, check_requirements,
+    ConfusionMatrix, LoadImagesAndLabels
 ]
