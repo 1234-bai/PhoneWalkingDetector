@@ -29,16 +29,16 @@ class Model:
 def run(
     device, 
     model_type,
-    label_path,
+    images_path,
     save_dir,
     name
 ):
-    dataset = LoadImagesAndLabels(label_path)
+    dataset = LoadImagesAndLabels(images_path)
     pwd = Model(model_type, device=device)
     class_count = 5 # (call, one, two, stand, other)
     cMatrix = ConfusionMatrix(class_count)
     totalTime = 0.0
-    for im, targetLabels, path in tqdm(dataset, desc=label_path):
+    for im, targetLabels, path in tqdm(dataset, desc=images_path):
         allDetections, time = pwd.detectSingleImage(im.numpy(), conf_thres=0.5)
         totalTime += time
         detectionLabels = allDetections[:, 5] if len(allDetections) else torch.tensor([])
@@ -56,7 +56,7 @@ def run(
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--label-path', type=str, default='datasets/yolodata/val.txt', help='path to label file/directory')
+    parser.add_argument('--images-path', type=str, default='datasets/yolodata/val.txt', help='path to images files/directory')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--model', default='pwd', dest = 'model_type',help='test modeltype, i.e. yolo or pwd')
     parser.add_argument('--save-dir', default='runs/test', help='save results to project/name')
