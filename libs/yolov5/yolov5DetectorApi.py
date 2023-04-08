@@ -15,8 +15,8 @@ class TargetsDetector:
         self,
         weights,  # model path or triton URL
         data,  # dataset.yaml path
+        device : torch.device,
         imgsz=(640, 640),  # inference size (height, width)
-        device : torch.device = 'cuda'
     ) -> None:
         # Load model
         # device = select_device(device)
