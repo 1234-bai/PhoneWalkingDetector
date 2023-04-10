@@ -118,7 +118,7 @@ class SingleImagePoseEstimation():
         self, 
         device : torch.device,
         configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
-        checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
+        checkpoint='weights/alphapose/fast_res50_256x192.pth',
     ):
 
         cfg = update_config(configFilePath)

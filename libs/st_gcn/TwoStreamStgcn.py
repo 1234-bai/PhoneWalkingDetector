@@ -13,7 +13,7 @@ class ActionEstimation():
     """
 
     def __init__(self,
-        weight_file = 'libs\st_gcn\model\st-gcn-tsstg-fail-model.pth',
+        weight_file = 'weights\stgcn\st-gcn-tsstg-fail-model.pth',
         class_names = ['Standing', 'Walking', 'Sitting', 'Lying Down',
                             'Stand up', 'Sit down', 'Fall Down'],
         layout = 'coco_cut',
