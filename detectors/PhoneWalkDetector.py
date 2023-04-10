@@ -21,13 +21,13 @@ class PhoneWalkDetector(Detector):
     def __loadModels(self, device):
         # people detector
         self.peoDt =  TargetsDetector(
-            weights='libs/yolov5/weights/yolov5s.pt',
+            weights='weights/yolov5/yolov5s.pt',
             data='libs/yolov5/data/coco128.yaml',
             device=device
         )
         # phone detector
         self.phoneDt= TargetsDetector(
-            weights='libs/yolov5/weights/phone_ep20.pt',
+            weights='weights/yolov5/phone_ep20.pt',
             data='libs/yolov5/data/phone.yaml',
             device=device
         )
@@ -35,7 +35,7 @@ class PhoneWalkDetector(Detector):
         self.poseEstimation = SingleImagePoseEstimation(device=device)
         # action estimation of holding phone with hand(s) 
         self.phoneAe = PhoneActionEstimation(
-            weight_file='libs/st_gcn/model/stgcn_class3_150_94_ex9.pt',
+            weight_file='weights/stgcn/stgcn_class3_150_94_ex9.pt',
             class_names=['nohand', 'oneHand', 'twoHands'],
             device=device
         )
