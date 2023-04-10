@@ -1,9 +1,10 @@
 from tqdm import tqdm
 import argparse
 import torch
+import numpy as np
 
 from libs.yolov5 import (
-        ConfusionMatrix, LoadImagesAndLabels, 
+        ConfusionMatrix, LoadImagesAndLabels, getCorrectPredictionMatrix, ap_per_class,
         increment_path, print_args, check_requirements, LOGGER
     )
 from detectors import PhoneWalkDetector, YoloPhoneWalkDetector
@@ -31,28 +32,60 @@ def run(
     model_type,
     images_path,
     save_dir,
-    name
+    name,
+    classes = ['call', 'one', 'two', 'stand', 'other']
 ):
     dataset = LoadImagesAndLabels(images_path)
     pwd = Model(model_type, device=device)
-    class_count = 5 # (call, one, two, stand, other)
+    iouv = torch.linspace(0.5, 0.95, 10)
+    class_count = len(classes) # (call, one, two, stand, other)
     cMatrix = ConfusionMatrix(class_count)
     totalTime = 0.0
+    stats = []
     for im, targetLabels, path in tqdm(dataset, desc=images_path):
         allDetections, time = pwd.detectSingleImage(im.numpy(), conf_thres=0.5)
         totalTime += time
-        detectionLabels = allDetections[:, 5] if len(allDetections) else torch.tensor([])
-        trueLabels = targetLabels[:, 0]
-        for i in range(class_count):
-            detections = allDetections[detectionLabels == i]
-            labels = targetLabels[trueLabels == i]
-            cMatrix.process_batch(detections, labels)
-    save_dir=increment_path(save_dir+'/'+name, mkdir=True)
-    cMatrix.plot(save_dir=save_dir, normalize=False, names=['call', 'one', 'two', 'stand', 'other'])
-    LOGGER.info(f'sum:{cMatrix.matrix.sum()}')
-    LOGGER.info(f'process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms')
-    LOGGER.info(f'results have be saved to {save_dir}')
+        detections = allDetections[:, 5] if len(allDetections) else torch.tensor([])
+        labels = targetLabels[:, 0]
+        detections = allDetections[detections < class_count]
+        labels = targetLabels[labels < class_count]
+        cMatrix.process_batch(detections, labels)
+        correct = getCorrectPredictionMatrix(detections, labels, iouv)
+        if len(detections):
+            stats.append((correct, detections[:, 4], detections[:, 5], labels[:, 0]))  # (correct, conf, pcls, tcls)
+        else:
+            stats.append((correct, *torch.zeros((2, 0)), labels[:, 0]))
 
+    save_dir=increment_path(save_dir+'/'+name, mkdir=True)
+
+    # Compute metrics
+    stats = [torch.cat(x, 0).cpu().numpy() for x in zip(*stats)]  # to numpy
+    if len(stats) and stats[0].any():
+        tp, fp, p, r, f1, ap, ap_class = ap_per_class(*stats, plot=True, save_dir=save_dir, names=classes)
+        ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+    nt = np.bincount(stats[3].astype(int), minlength=class_count)  # number of targets per class
+
+    # Print results
+    s = ('%22s' + '%11s' * 5) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
+    LOGGER.info(s)
+    pf = '%22s' + '%11i' + '%11.3g' * 4  # print format
+    LOGGER.info(pf % ('all', nt.sum(), mp, mr, map50, map))
+    if nt.sum() == 0:
+        LOGGER.warning(f'WARNING ⚠️ no labels found in test set, can not compute metrics without labels')
+
+    # Print results per class
+    if class_count < 50 and class_count > 1 and len(stats):
+        for i, c in enumerate(ap_class):
+            LOGGER.info(pf % (classes[c], nt[c], p[i], r[i], ap50[i], ap[i]))
+
+    # Print speeds
+    LOGGER.info(f'process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms')
+
+    # plot ConfusionMatrix
+    cMatrix.plot(save_dir=save_dir, normalize=False, names=classes)
+
+    LOGGER.info(f'results have be saved to {save_dir}')
 
 def parse_opt():
     parser = argparse.ArgumentParser()
