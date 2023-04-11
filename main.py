@@ -111,7 +111,7 @@ def run(
 
     # ending of for ---------------------------------------------------------------------------------
 
-    LOGGER.info(f"{source}, average process time: {totalTime / capCount * 1E3:.1f}ms")
+    LOGGER.info(f"{source}, total time: {totalTime * 1E3:.1f}, average process time: {totalTime / capCount * 1E3:.1f}ms")
     if save or save_crop: LOGGER.info(f"results save to {save_dir}")
 
 
@@ -124,7 +124,7 @@ def parse_opt():
     parser.add_argument('--line-thickness', default=2, type=int, help='bounding box thickness (pixels)')
     parser.add_argument('--nosave', action='store_true', help='save images/videos result')
     parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
-    parser.add_argument('--save-dir', default='runs/test', help='save results to project/name')
+    parser.add_argument('--save-dir', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--vid-stride', type=int, default=1, help='video frame-rate stride')

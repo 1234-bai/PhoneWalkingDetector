@@ -63,7 +63,7 @@ class PhoneWalkDetector(Detector):
         phoneActionEstimation = self.phoneAe
         out, time = phoneActionEstimation.predictSingleCap(kp, score, None, normed=True) 
         dt.t +=time
-        conf = [*(conf[0] * out), conf[1]]    # conf: (no play, play with one, play with two, other)
+        conf = [*(conf[0] * out), conf[1]]    # conf: (walking, play with one, play with two, other)
         # phone = phoneActionEstimation.getLabel(phone)
         # if phone == 'nohand':
         #     return False
@@ -100,7 +100,7 @@ class PhoneWalkDetector(Detector):
         phoneActionEstimation = self.phoneAe
         out, time = phoneActionEstimation.predict(tvc, None, normed=True)   
         dt.t += time
-        conf = [*(conf[0] * out), conf[1]]    # conf: (no play, play with one, play with two, other)
+        conf = [*(conf[0] * out), conf[1]]    # conf: (walk, play with one, play with two, other)
         # phone = phoneActionEstimation.getLabel(phone)
         # if phone == 'nohand':
         #     return False
@@ -131,10 +131,10 @@ class PhoneWalkDetector(Detector):
                 actionId based phone 
         '''
         # (手持)手机检测
-        _, phoneXyxyBoxes, confs , time = self.phoneDt.detectSingleImage(peoCrop, conf_thres=0.4)
+        _, phoneXyxyBoxes, confs, time = self.phoneDt.detectSingleImage(peoCrop, conf_thres=0.4)
         dt.t += time
         pB = None
-        conf = [0.0, 0.0, 1.0]   # (play, call, other)
+        conf = [0.0, 0.0, 1.0]   # (phone in hand, phone ears, other)
         if(len(phoneXyxyBoxes)):   # 人像图中存在手机
             for i, phoneBox in enumerate(phoneXyxyBoxes):  # 对于每个手机，是否与人手重合
                 phoneBox += np.array(cropBox)[[0, 1, 0, 1]]
@@ -153,18 +153,18 @@ class PhoneWalkDetector(Detector):
             self, 
             peoplePoseConf, 
             phoneWalkingConf, # (no, one, two, other)
-            phoneConf   # (play, call, other)
+            phoneConf   # (phone in hand, phone in ears, other)
         ):
         pwConf = peoplePoseConf * np.array(phoneWalkingConf)
-        conf = np.concatenate((pwConf[:3], [1 - peoplePoseConf + pwConf[3]]))   # (stand, one, two, other)
+        conf = np.concatenate((pwConf[:3], [1 - peoplePoseConf + pwConf[3]]))   # (walk, one, two, other)
         # total confidence
         conf = [
-            conf[1] * phoneConf[1], # call = one * call
-            conf[1] * phoneConf[0], # playWithOneHand = one * play
-            conf[2] * (phoneConf[0] + phoneConf[1]), # playWithTwoHands = two * (play + call)
-            conf[0] + (conf[1] + conf[2]) * phoneConf[2] # stand = stand + one * other + two * other
-        ]   # (call, playWithOneHand, playWithTwoHands, stand)
-        conf = [*conf, 1.0-sum(conf)]   # (call, playWithOneHand, playWithTwoHands, stand, other)
+            conf[1] * phoneConf[1], # call = one * phone in ear
+            conf[1] * phoneConf[0], # playWithOneHand = one * phone in hand
+            conf[2] * (phoneConf[0] + phoneConf[1]), # playWithTwoHands = two * (phone in hand + phone in ear)
+            conf[0] + (conf[1] + conf[2]) * phoneConf[2] # walk = walk + one * other + two * other
+        ]   # (call, playWithOneHand, playWithTwoHands, walk)
+        conf = [*conf, 1.0-sum(conf)]   # (call, playWithOneHand, playWithTwoHands, walk, other)
         return conf
 
 
@@ -278,4 +278,4 @@ class PhoneWalkDetector(Detector):
 
     def getLabel(self, cls):
         # return ['phoneWalking', 'call', 'other'][cls]
-        return ['call', 'playWithOneHand', 'playWithTwoHands', 'stand', 'other'][cls]
+        return ['call', 'playWithOneHand', 'playWithTwoHands', 'walking', 'other'][cls]
