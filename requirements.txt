@@ -60,3 +60,6 @@ halpecocotools
 munkres
 timm==0.1.20
 natsort
+
+# UI
+PyQt5 == 5.15.8
