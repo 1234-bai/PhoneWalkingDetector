@@ -14,7 +14,7 @@ class Model:
     def __init__(self, model_type, device) -> None:
         self.model_type = model_type
         self.model =  YoloPhoneWalkDetector(device) if model_type == 'yolo' else PhoneWalkDetector(device)
-        pass
+
 
     def detectSingleImage(self, im0, conf_thres):
         labelIds, targetBoxes, confs, _, _, time = self.model.detectSingleImage(im0, conf_thres, 'image', False)
@@ -66,9 +66,9 @@ def run(
     # Print/Save results
     with open(save_dir / 'result.txt', "w") as f:
 
-        s = ('%22s' + '%11s' * 5) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
+        s = ('%11s' * 5) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
         f.write(s+'\n')
-        pf = '%22s' + '%11i' + '%11.3g' * 4  # print format
+        pf = '%11i' + '%11.3g' * 4  # print format
         s = pf % ('all', nt.sum(), mp, mr, map50, map)
         f.write(s+'\n')
         # Print results per class
@@ -78,7 +78,7 @@ def run(
                 f.write(s+'\n')
 
         # Print speeds
-        s = f'total time: {totalTime * 1E3:.2f}ms,process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms'
+        s = f'total time: {totalTime:.2f}s,process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms'
         f.write(s+'\n')
 
     # plot ConfusionMatrix

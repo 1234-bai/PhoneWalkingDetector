@@ -38,7 +38,7 @@ class DetThread(QThread):
         self.percent_length = 1000              # progress bar
         self.rate_check = True                  # Whether to enable delay
         self.rate = 100
-        self.save_fold = './result'
+        self.save_fold = './runs/result'
         self.model_type = 'default'
         self.current_model_type = 'default'
         self.processing_file = ''
@@ -82,8 +82,7 @@ class DetThread(QThread):
                     self.vid_cap.release()
                     self.send_percent.emit(0)
                     self.send_msg.emit('Stop')
-                    if hasattr(self, 'out'):
-                        if self.out is not None : self.out.release()
+                    if self.out is not None : self.out.release()
                     break
                 # change model
                 if self.current_model_type != self.model_type:
@@ -144,8 +143,7 @@ class DetThread(QThread):
                         print(count)
                         self.send_percent.emit(0)
                         self.send_msg.emit('finished')
-                        if hasattr(self, 'out'):
-                            self.out.release()
+                        if self.out is not None : self.out.release()
                         break
 
         except Exception as e:
