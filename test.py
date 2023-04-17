@@ -63,21 +63,23 @@ def run(
         mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
     nt = np.bincount(stats[3].astype(int), minlength=class_count)  # number of targets per class
 
-    # Print results
-    s = ('%22s' + '%11s' * 5) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
-    LOGGER.info(s)
-    pf = '%22s' + '%11i' + '%11.3g' * 4  # print format
-    LOGGER.info(pf % ('all', nt.sum(), mp, mr, map50, map))
-    if nt.sum() == 0:
-        LOGGER.warning(f'WARNING ⚠️ no labels found in test set, can not compute metrics without labels')
+    # Print/Save results
+    with open(save_dir / 'result.txt', "w") as f:
 
-    # Print results per class
-    if class_count < 50 and class_count > 1 and len(stats):
-        for i, c in enumerate(ap_class):
-            LOGGER.info(pf % (classes[c], nt[c], p[i], r[i], ap50[i], ap[i]))
+        s = ('%22s' + '%11s' * 5) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
+        f.write(s+'\n')
+        pf = '%22s' + '%11i' + '%11.3g' * 4  # print format
+        s = pf % ('all', nt.sum(), mp, mr, map50, map)
+        f.write(s+'\n')
+        # Print results per class
+        if class_count < 50 and class_count > 1 and len(stats):
+            for i, c in enumerate(ap_class):
+                s = pf % (classes[c], nt[c], p[i], r[i], ap50[i], ap[i])
+                f.write(s+'\n')
 
-    # Print speeds
-    LOGGER.info(f'total time: {totalTime * 1E3:.2f}ms,process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms')
+        # Print speeds
+        s = f'total time: {totalTime * 1E3:.2f}ms,process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms'
+        f.write(s+'\n')
 
     # plot ConfusionMatrix
     cMatrix.plot(save_dir=save_dir, normalize=False, names=classes)
