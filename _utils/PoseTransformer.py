@@ -97,4 +97,4 @@ def getBodyPartIndex(keypoinesType = 'coco2017', bodyPartType = 'wrist'):
             return [3, 4]
     else:
         raise
-        return None
+    return None
