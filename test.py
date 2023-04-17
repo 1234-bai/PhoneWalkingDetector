@@ -17,10 +17,7 @@ class Model:
         pass
 
     def detectSingleImage(self, im0, conf_thres):
-        if self.model_type == 'yolo':
-            labelIds, targetBoxes, confs, time = self.model.detectSingleImage(im0, conf_thres)
-        else:
-            labelIds, targetBoxes, confs, _, _, time = self.model.detectSingleImage(im0, 'image', False, conf_thres)
+        labelIds, targetBoxes, confs, _, _, time = self.model.detectSingleImage(im0, conf_thres, 'image', False)
         labelIds = torch.tensor(labelIds)
         confs = torch.tensor(confs)
         targetBoxes = torch.tensor(targetBoxes)
@@ -33,7 +30,7 @@ def run(
     images_path,
     save_dir,
     name,
-    classes = ['call', 'one', 'two', 'stand', 'other']
+    classes = ['call', 'one', 'two', 'walk', 'other']
 ):
     dataset = LoadImagesAndLabels(images_path)
     pwd = Model(model_type, device=device)
@@ -80,7 +77,7 @@ def run(
             LOGGER.info(pf % (classes[c], nt[c], p[i], r[i], ap50[i], ap[i]))
 
     # Print speeds
-    LOGGER.info(f'process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms')
+    LOGGER.info(f'total time: {totalTime * 1E3:.2f}ms,process time for per image: {(totalTime / dataset.n) * 1E3:.2f}ms')
 
     # plot ConfusionMatrix
     cMatrix.plot(save_dir=save_dir, normalize=False, names=classes)
@@ -89,7 +86,7 @@ def run(
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--images-path', type=str, default='datasets/yolodata/val.txt', help='path to images files/directory')
+    parser.add_argument('--images-path', type=str, default='datasets/yolodata/test/test.txt', help='path to images files/directory')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--model', default='pwd', dest = 'model_type',help='test modeltype, i.e. yolo or pwd')
     parser.add_argument('--save-dir', default='runs/test', help='save results to project/name')
