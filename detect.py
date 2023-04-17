@@ -1,7 +1,6 @@
 import argparse
 import cv2
 from pathlib import Path
-from tqdm import tqdm
 
 from libs.yolov5 import increment_path, print_args, LOGGER, loadData, check_requirements
 from detectors.PhoneWalkDetector import PhoneWalkDetector
@@ -87,7 +86,7 @@ def run(
         # time recorder
         capCount += 1
 
-        labelIds, _, _, crops, img, times = pwd.detectSingleImage(im0, dataset.mode, isNew, line_thickness = line_thickness)
+        labelIds, _, _, crops, img, times = pwd.detectSingleImage(im0, conf_thres=0.5, mode = dataset.mode, isNew=isNew, line_thickness = line_thickness)
 
         # print time
         LOGGER.info(f"{infoStr}\n      people detection :{'' if len(labelIds) else '(no detections), '}{times[0] * 1E3:.1f}ms")

@@ -14,6 +14,7 @@ from Detector import Detector
 class PhoneWalkDetector(Detector):
 
     def __init__(self, device = ''):
+        super().__init__(['call', 'playWithOneHand', 'playWithTwoHands', 'walking', 'other'])
         device = select_device(device)
         self.__loadModels(device)
 
@@ -177,7 +178,7 @@ class PhoneWalkDetector(Detector):
             annotator.box_label(phoneBox, label='phone', color=colors(5), txt_color=black_bgr)
 
 
-    def detectSingleImage(self, im0, mode, isNew, conf_thres = 0.3, line_thickness = 2):
+    def detectSingleImage(self, im0, conf_thres, mode = 'image', isNew = True, line_thickness = 2):
 
         targetBoxes = []
         crops = []
@@ -276,6 +277,6 @@ class PhoneWalkDetector(Detector):
         # cls, boxes, crops, annotatedImages, time,
         return labelIds, targetBoxes, confs, crops, img, [time, peTime, dt[0].t, dt[1].t]
 
-    def getLabel(self, cls):
-        # return ['phoneWalking', 'call', 'other'][cls]
-        return ['call', 'playWithOneHand', 'playWithTwoHands', 'walking', 'other'][cls]
+    # def getLabel(self, cls):
+    #     # return ['phoneWalking', 'call', 'other'][cls]
+    #     return self._Detector__class_names[cls]
