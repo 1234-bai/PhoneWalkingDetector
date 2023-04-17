@@ -23,13 +23,11 @@ class PhoneWalkDetector(Detector):
         # people detector
         self.peoDt =  TargetsDetector(
             weights='weights/yolov5/yolov5s.pt',
-            data='libs/yolov5/data/coco128.yaml',
             device=device
         )
         # phone detector
         self.phoneDt= TargetsDetector(
-            weights='weights/yolov5/phone_ep20.pt',
-            data='libs/yolov5/data/phone.yaml',
+            weights='weights/yolov5/phoneEp80.pt',
             device=device
         )
         # people pose estimation
@@ -132,7 +130,7 @@ class PhoneWalkDetector(Detector):
                 actionId based phone 
         '''
         # (手持)手机检测
-        _, phoneXyxyBoxes, confs, time = self.phoneDt.detectSingleImage(peoCrop, conf_thres=0.4)
+        _, phoneXyxyBoxes, confs, time = self.phoneDt.detectSingleImage(peoCrop, conf_thres=0.85)
         dt.t += time
         pB = None
         conf = [0.0, 0.0, 1.0]   # (phone in hand, phone ears, other)

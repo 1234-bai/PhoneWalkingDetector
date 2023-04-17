@@ -9,5 +9,4 @@ class Detector:
         return self.__class_names
     
     def getLabel(self, cls):
-        # return ['phoneWalking', 'call', 'other'][cls]
         return self.__class_names[cls]

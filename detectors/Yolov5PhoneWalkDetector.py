@@ -6,13 +6,12 @@ from Detector import Detector
 class YoloPhoneWalkDetector(Detector):
 
     def __init__(self, device):
-        super().__init__(['call', 'playWithOneHand', 'playWithTwoHands', 'walking', 'other'])
         device  = select_device(device)
         self.detector = TargetsDetector(
-            weights='weights/yolov5/phoneWalk.pt',
-            data = 'libs/yolov5/data/phoneWalk.yaml',
+            weights='weights/yolov5/phoneWalkEp300.pt',
             device=device
         )
+        super().__init__(self.detector.names)
 
     def detectSingleImage(self, im0, conf_thres, mode = 'image', isNew = True, line_thickness = 2):
         cls, targetBoxes, confs, time = self.detector.detectSingleImage(im0, conf_thres)

@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 
-from models.common import DetectMultiBackend
+from models.experimental import attempt_load
 from utils.general import (Profile, check_img_size, non_max_suppression, scale_boxes)
 from utils.plots import Annotator
 from utils.augmentations import letterbox
@@ -14,54 +14,48 @@ class TargetsDetector:
     def __init__(
         self,
         weights,  # model path or triton URL
-        data,  # dataset.yaml path
         device : torch.device,
         imgsz=(640, 640),  # inference size (height, width)
     ) -> None:
         # Load model
-        # device = select_device(device)
-        # dnn=False,  # use OpenCV DNN for ONNX inference
-        # half=False,  # use FP16 half-precision inference
-        model = DetectMultiBackend(weights, device=device, dnn=False, data=data, fp16=False)
-
-        self.stride, self.names, self.pt = model.stride, model.names, model.pt # stride表示的即是模型下采样次数的2的次方，这个涉及感受野的问题，在YOLOV5中下采样次数为5;names目标检测出的类别名字数组
+        # model = DetectMultiBackend(weights, device=device, dnn=False, data=data, fp16=False)
+        model = attempt_load(weights, device=device)
+        model.float()
+        self.stride=  max(int(model.stride.max()), 32)
+        self.names = model.module.names if hasattr(model, 'module') else model.names # stride表示的即是模型下采样次数的2的次方，这个涉及感受野的问题，在YOLOV5中下采样次数为5;names目标检测出的类别名字数组
         self.model = model
         self.imgsz = check_img_size(imgsz, s=self.stride)  # check image size
-        self.__warmedupFlag = False
+        self.device = device
+        if device.type != 'cpu': # warmup
+            im = torch.empty((1, 3, *imgsz), dtype= torch.float, device=device)  # input
+            self.model(im)
         self.dt = (Profile(), Profile(), Profile())
-
 
     def detectSingleImage(
         self, 
         im0,
-        # augment=False,  # augmented inference
         conf_thres=0.5,  # confidence threshold 置信度阈值
         # iou_thres=0.45,  # NMS IOU threshold 非极大值抑制的交并比阈值
         classes=None,  # filter by class: --class 0, or --class 0 2 3 类别过滤器，只识别给出的类别编号，和配置文件中的类别编号相对应
-        # agnostic_nms=False,  # class-agnostic NMS
         max_det=1000,  # maximum detections per image 每张图片目标检测的最大数量
     ):
 
-        im = letterbox(im0, self.imgsz, stride=self.stride, auto=self.pt)[0]  # padded resize
+        im = letterbox(im0, self.imgsz, stride=self.stride, auto=True)[0]  # padded resize
         im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         im = np.ascontiguousarray(im)  # contiguous
 
         results = [[], [], []]
         # 图片像素点归一化
         with self.dt[0]:
-            im = torch.from_numpy(im).to(self.model.device)
-            im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32 
+            im = torch.from_numpy(im).to(self.device)
+            im = im.float()  # uint8 to fp16/32 
             im /= 255  # 0 - 255 to 0.0 - 1.0
             if len(im.shape) == 3:
                 im = im[None]  # expand for batch dim
 
-        if self.__warmedupFlag == False:
-            self.model.warmup(imgsz=(1, 3, *(self.imgsz)))  # 模型使用前预处理
-            self.__warmedupFlag = True
-
         # 预测
         with self.dt[1]:
-            pred = self.model(im, augment=False, visualize=False)  
+            pred = self.model(im)[0]
 
         # NMS
         with self.dt[2]:
