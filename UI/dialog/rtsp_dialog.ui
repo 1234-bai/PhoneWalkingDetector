@@ -27,7 +27,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../apprcc.qrc">
-    <normaloff>./UI/icon/实时视频流解析.png</normaloff>./UI/icon/实时视频流解析.png</iconset>
+    <normaloff>:/img/icon/实时视频流解析.png</normaloff>:/img/icon/实时视频流解析.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">#Form{background:rgba(120,120,120,255)}</string>

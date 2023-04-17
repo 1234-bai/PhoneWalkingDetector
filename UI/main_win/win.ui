@@ -18,7 +18,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../apprcc.qrc">
-    <normaloff>./UI/icon/图片1.png</normaloff>./UI/icon/图片1.png</iconset>
+    <normaloff>:/img/icon/图片1.png</normaloff>:/img/icon/图片1.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">#mainWindow{border:none;}</string>
@@ -43,7 +43,7 @@
     <item>
      <widget class="QGroupBox" name="groupBox_18">
       <property name="styleSheet">
-       <string notr="true">#groupBox_18{border-image: url(./UI/icon/background.jpg);
+       <string notr="true">#groupBox_18{border-image: url(:/img/icon/background.jpg);
 border: 0px solid #42adff;
 border-radius:5px;}</string>
       </property>
@@ -118,7 +118,7 @@ border-radius:0px;}</string>
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true">image: url(./UI/icon/conan.png);</string>
+             <string notr="true">image: url(:/img/icon/conan.png);</string>
             </property>
             <property name="text">
              <string/>
@@ -194,7 +194,7 @@ background-color: rgba(223, 223, 223, 150);}</string>
               </property>
               <property name="icon">
                <iconset resource="../apprcc.qrc">
-                <normaloff>./UI/icon/最小化.png</normaloff>./UI/icon/最小化.png</iconset>
+                <normaloff>:/img/icon/最小化.png</normaloff>:/img/icon/最小化.png</iconset>
               </property>
              </widget>
             </item>
@@ -230,9 +230,9 @@ background-color: rgba(223, 223, 223, 150);}</string>
               </property>
               <property name="icon">
                <iconset resource="../apprcc.qrc">
-                <normaloff>./UI/icon/正方形.png</normaloff>
-                <activeon>./UI/icon/还原.png</activeon>
-                <selectedon>./UI/icon/还原.png</selectedon>./UI/icon/正方形.png</iconset>
+                <normaloff>:/img/icon/正方形.png</normaloff>
+                <activeon>:/img/icon/还原.png</activeon>
+                <selectedon>:/img/icon/还原.png</selectedon>:/img/icon/正方形.png</iconset>
               </property>
               <property name="checkable">
                <bool>true</bool>
@@ -271,7 +271,7 @@ background-color: rgba(223, 223, 223, 150);}</string>
               </property>
               <property name="icon">
                <iconset resource="../apprcc.qrc">
-                <normaloff>./UI/icon/关闭.png</normaloff>./UI/icon/关闭.png</iconset>
+                <normaloff>:/img/icon/关闭.png</normaloff>:/img/icon/关闭.png</iconset>
               </property>
              </widget>
             </item>
@@ -478,7 +478,7 @@ QComboBox::drop-down {
 margin-top:8;
 height:20;
 background:rgba(255,255,255,0);
-border-image: url(./UI/icon/下拉_白色.png);
+border-image: url(:/img/icon/下拉_白色.png);
 }
 </string>
                 </property>
@@ -642,7 +642,7 @@ background-color: rgba(48,148,243,80);}</string>
                      </property>
                      <property name="icon">
                       <iconset resource="../apprcc.qrc">
-                       <normaloff>./UI/icon/打开.png</normaloff>./UI/icon/打开.png</iconset>
+                       <normaloff>:/img/icon/打开.png</normaloff>:/img/icon/打开.png</iconset>
                      </property>
                     </widget>
                    </item>
@@ -721,7 +721,7 @@ background-color: rgba(48,148,243,80);}</string>
                      </property>
                      <property name="icon">
                       <iconset resource="../apprcc.qrc">
-                       <normaloff>./UI/icon/摄像头开.png</normaloff>./UI/icon/摄像头开.png</iconset>
+                       <normaloff>:/img/icon/摄像头开.png</normaloff>:/img/icon/摄像头开.png</iconset>
                      </property>
                     </widget>
                    </item>
@@ -800,7 +800,7 @@ background-color: rgba(48,148,243,80);}</string>
                      </property>
                      <property name="icon">
                       <iconset resource="../apprcc.qrc">
-                       <normaloff>./UI/icon/实时视频流解析.png</normaloff>./UI/icon/实时视频流解析.png</iconset>
+                       <normaloff>:/img/icon/实时视频流解析.png</normaloff>:/img/icon/实时视频流解析.png</iconset>
                      </property>
                     </widget>
                    </item>
@@ -873,17 +873,17 @@ border-radius: 3px;}
 
 QDoubleSpinBox::down-button{
 background:rgba(200, 200, 200,0);
-border-image: url(./UI/icon/箭头_列表展开.png);}
+border-image: url(:/img/icon/箭头_列表展开.png);}
 QDoubleSpinBox::down-button::hover{
 background:rgba(200, 200, 200,100);
-border-image: url(./UI/icon/箭头_列表展开.png);}
+border-image: url(:/img/icon/箭头_列表展开.png);}
 
 QDoubleSpinBox::up-button{
 background:rgba(200, 200, 200,0);
-border-image: url(./UI/icon/箭头_列表收起.png);}
+border-image: url(:/img/icon/箭头_列表收起.png);}
 QDoubleSpinBox::up-button::hover{
 background:rgba(200, 200, 200,100);
-border-image: url(./UI/icon/箭头_列表收起.png);}
+border-image: url(:/img/icon/箭头_列表收起.png);}
 </string>
                   </property>
                   <property name="maximum">
@@ -912,7 +912,7 @@ QSlider::groove:horizontal {
  }
 QSlider::handle:horizontal {                               
      border: 0px ; 
-     border-image: url(./UI/icon/圆.png);
+     border-image: url(:/img/icon/圆.png);
 	 width:15px;
      margin: -7px -7px -7px -7px;                  
 } 
@@ -1004,17 +1004,17 @@ border-radius: 3px;}
 
 QDoubleSpinBox::down-button{
 background:rgba(200, 200, 200,0);
-border-image: url(./UI/icon/箭头_列表展开.png);}
+border-image: url(:/img/icon/箭头_列表展开.png);}
 QDoubleSpinBox::down-button::hover{
 background:rgba(200, 200, 200,100);
-border-image: url(./UI/icon/箭头_列表展开.png);}
+border-image: url(:/img/icon/箭头_列表展开.png);}
 
 QDoubleSpinBox::up-button{
 background:rgba(200, 200, 200,0);
-border-image: url(./UI/icon/箭头_列表收起.png);}
+border-image: url(:/img/icon/箭头_列表收起.png);}
 QDoubleSpinBox::up-button::hover{
 background:rgba(200, 200, 200,100);
-border-image: url(./UI/icon/箭头_列表收起.png);}
+border-image: url(:/img/icon/箭头_列表收起.png);}
 </string>
                   </property>
                   <property name="maximum">
@@ -1043,7 +1043,7 @@ QSlider::groove:horizontal {
  }
 QSlider::handle:horizontal {                               
      border: 0px ; 
-     border-image: url(./UI/icon/圆.png);
+     border-image: url(:/img/icon/圆.png);
 	 width:15px;
      margin: -7px -7px -7px -7px;                  
 } 
@@ -1128,12 +1128,12 @@ QCheckBox::indicator {
 	height: 20px;
 }
 QCheckBox::indicator:unchecked {
-    image: url(./UI/icon/button-off.png);
+    image: url(:/img/icon/button-off.png);
 }
 
 QCheckBox::indicator:checked {
     
-    image: url(./UI/icon/button-on.png);
+    image: url(:/img/icon/button-on.png);
 }
 </string>
                   </property>
@@ -1182,17 +1182,17 @@ border-radius: 3px;}
 
 QSpinBox::down-button{
 background:rgba(200, 200, 200,0);
-border-image: url(./UI/icon/箭头_列表展开.png);}
+border-image: url(:/img/icon/箭头_列表展开.png);}
 QDoubleSpinBox::down-button::hover{
 background:rgba(200, 200, 200,100);
-border-image: url(./UI/icon/箭头_列表展开.png);}
+border-image: url(:/img/icon/箭头_列表展开.png);}
 
 QSpinBox::up-button{
 background:rgba(200, 200, 200,0);
-border-image: url(./UI/icon/箭头_列表收起.png);}
+border-image: url(:/img/icon/箭头_列表收起.png);}
 QSpinBox::up-button::hover{
 background:rgba(200, 200, 200,100);
-border-image: url(./UI/icon/箭头_列表收起.png);}
+border-image: url(:/img/icon/箭头_列表收起.png);}
 </string>
                   </property>
                   <property name="minimum">
@@ -1224,7 +1224,7 @@ QSlider::groove:horizontal {
  }
 QSlider::handle:horizontal {                               
      border: 0px ; 
-     border-image: url(./UI/icon/圆.png);
+     border-image: url(:/img/icon/圆.png);
 	 width:15px;
      margin: -7px -7px -7px -7px;                  
 } 
@@ -1315,12 +1315,12 @@ QCheckBox::indicator {
 	height: 20px;
 }
 QCheckBox::indicator:unchecked {
-    image: url(./UI/icon/button-off.png);
+    image: url(:/img/icon/button-off.png);
 }
 
 QCheckBox::indicator:checked {
     
-    image: url(./UI/icon/button-on.png);
+    image: url(:/img/icon/button-on.png);
 }
 </string>
                  </property>
@@ -1752,14 +1752,14 @@ background-color: rgba(223, 223, 223, 150);}</string>
                 </property>
                 <property name="icon">
                  <iconset resource="../apprcc.qrc">
-                  <normaloff>./UI/icon/运行.png</normaloff>
-                  <normalon>./UI/icon/暂停.png</normalon>
-                  <disabledoff>./UI/icon/运行.png</disabledoff>
-                  <disabledon>./UI/icon/暂停.png</disabledon>
-                  <activeoff>./UI/icon/运行.png</activeoff>
-                  <activeon>./UI/icon/暂停.png</activeon>
-                  <selectedoff>./UI/icon/运行.png</selectedoff>
-                  <selectedon>./UI/icon/暂停.png</selectedon>./UI/icon/运行.png</iconset>
+                  <normaloff>:/img/icon/运行.png</normaloff>
+                  <normalon>:/img/icon/暂停.png</normalon>
+                  <disabledoff>:/img/icon/运行.png</disabledoff>
+                  <disabledon>:/img/icon/暂停.png</disabledon>
+                  <activeoff>:/img/icon/运行.png</activeoff>
+                  <activeon>:/img/icon/暂停.png</activeon>
+                  <selectedoff>:/img/icon/运行.png</selectedoff>
+                  <selectedon>:/img/icon/暂停.png</selectedon>:/img/icon/运行.png</iconset>
                 </property>
                 <property name="iconSize">
                  <size>
@@ -1822,7 +1822,7 @@ background-color: rgba(223, 223, 223, 150);}</string>
                 </property>
                 <property name="icon">
                  <iconset resource="../apprcc.qrc">
-                  <normaloff>./UI/icon/终止.png</normaloff>./UI/icon/终止.png</iconset>
+                  <normaloff>:/img/icon/终止.png</normaloff>:/img/icon/终止.png</iconset>
                 </property>
                 <property name="iconSize">
                  <size>

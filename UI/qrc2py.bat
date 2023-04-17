@@ -1,0 +1,1 @@
+pyrcc5 -o apprcc_rc.py apprcc.qrc

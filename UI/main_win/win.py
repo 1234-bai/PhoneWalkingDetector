@@ -10,6 +10,8 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..MouseLabel import Label_click_Mouse
+# import UI.apprcc_rc
 
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
@@ -17,7 +19,7 @@ class Ui_mainWindow(object):
         mainWindow.resize(1394, 762)
         mainWindow.setMouseTracking(True)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("./UI/icon/图片1.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/img/icon/图片1.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         mainWindow.setWindowIcon(icon)
         mainWindow.setStyleSheet("#mainWindow{border:none;}")
         self.centralwidget = QtWidgets.QWidget(mainWindow)
@@ -27,7 +29,7 @@ class Ui_mainWindow(object):
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.groupBox_18 = QtWidgets.QGroupBox(self.centralwidget)
-        self.groupBox_18.setStyleSheet("#groupBox_18{border-image: url(./UI/icon/background.jpg);\n"
+        self.groupBox_18.setStyleSheet("#groupBox_18{border-image: url(:/img/icon/background.jpg);\n"
 "border: 0px solid #42adff;\n"
 "border-radius:5px;}")
         self.groupBox_18.setTitle("")
@@ -56,7 +58,7 @@ class Ui_mainWindow(object):
         self.label_7 = QtWidgets.QLabel(self.groupBox)
         self.label_7.setMinimumSize(QtCore.QSize(40, 40))
         self.label_7.setMaximumSize(QtCore.QSize(40, 40))
-        self.label_7.setStyleSheet("image: url(./UI/icon/conan.png);")
+        self.label_7.setStyleSheet("image: url(:/img/icon/conan.png);")
         self.label_7.setText("")
         self.label_7.setObjectName("label_7")
         self.horizontalLayout.addWidget(self.label_7)
@@ -94,7 +96,7 @@ class Ui_mainWindow(object):
 "background-color: rgba(223, 223, 223, 150);}")
         self.minButton.setText("")
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("./UI/icon/最小化.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/img/icon/最小化.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.minButton.setIcon(icon1)
         self.minButton.setObjectName("minButton")
         self.horizontalLayout_5.addWidget(self.minButton)
@@ -114,9 +116,9 @@ class Ui_mainWindow(object):
 "background-color: rgba(223, 223, 223, 150);}")
         self.maxButton.setText("")
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("./UI/icon/正方形.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon2.addPixmap(QtGui.QPixmap("./UI/icon/还原.png"), QtGui.QIcon.Active, QtGui.QIcon.On)
-        icon2.addPixmap(QtGui.QPixmap("./UI/icon/还原.png"), QtGui.QIcon.Selected, QtGui.QIcon.On)
+        icon2.addPixmap(QtGui.QPixmap(":/img/icon/正方形.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon2.addPixmap(QtGui.QPixmap(":/img/icon/还原.png"), QtGui.QIcon.Active, QtGui.QIcon.On)
+        icon2.addPixmap(QtGui.QPixmap(":/img/icon/还原.png"), QtGui.QIcon.Selected, QtGui.QIcon.On)
         self.maxButton.setIcon(icon2)
         self.maxButton.setCheckable(True)
         self.maxButton.setObjectName("maxButton")
@@ -137,7 +139,7 @@ class Ui_mainWindow(object):
 "background-color: rgba(223, 223, 223, 150);}")
         self.closeButton.setText("")
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("./UI/icon/关闭.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(QtGui.QPixmap(":/img/icon/关闭.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.closeButton.setIcon(icon3)
         self.closeButton.setObjectName("closeButton")
         self.horizontalLayout_5.addWidget(self.closeButton)
@@ -232,7 +234,7 @@ class Ui_mainWindow(object):
 "margin-top:8;\n"
 "height:20;\n"
 "background:rgba(255,255,255,0);\n"
-"border-image: url(./UI/icon/下拉_白色.png);\n"
+"border-image: url(:/img/icon/下拉_白色.png);\n"
 "}\n"
 "")
         self.comboBox.setObjectName("comboBox")
@@ -329,7 +331,7 @@ class Ui_mainWindow(object):
 "background-color: rgba(48,148,243,80);}")
         self.fileButton.setText("")
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("./UI/icon/打开.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon4.addPixmap(QtGui.QPixmap(":/img/icon/打开.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.fileButton.setIcon(icon4)
         self.fileButton.setObjectName("fileButton")
         self.horizontalLayout_8.addWidget(self.fileButton)
@@ -389,7 +391,7 @@ class Ui_mainWindow(object):
 "background-color: rgba(48,148,243,80);}")
         self.cameraButton.setText("")
         icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap("./UI/icon/摄像头开.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon5.addPixmap(QtGui.QPixmap(":/img/icon/摄像头开.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.cameraButton.setIcon(icon5)
         self.cameraButton.setObjectName("cameraButton")
         self.horizontalLayout_8.addWidget(self.cameraButton)
@@ -449,7 +451,7 @@ class Ui_mainWindow(object):
 "background-color: rgba(48,148,243,80);}")
         self.rtspButton.setText("")
         icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap("./UI/icon/实时视频流解析.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon6.addPixmap(QtGui.QPixmap(":/img/icon/实时视频流解析.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.rtspButton.setIcon(icon6)
         self.rtspButton.setObjectName("rtspButton")
         self.horizontalLayout_8.addWidget(self.rtspButton)
@@ -491,17 +493,17 @@ class Ui_mainWindow(object):
 "\n"
 "QDoubleSpinBox::down-button{\n"
 "background:rgba(200, 200, 200,0);\n"
-"border-image: url(./UI/icon/箭头_列表展开.png);}\n"
+"border-image: url(:/img/icon/箭头_列表展开.png);}\n"
 "QDoubleSpinBox::down-button::hover{\n"
 "background:rgba(200, 200, 200,100);\n"
-"border-image: url(./UI/icon/箭头_列表展开.png);}\n"
+"border-image: url(:/img/icon/箭头_列表展开.png);}\n"
 "\n"
 "QDoubleSpinBox::up-button{\n"
 "background:rgba(200, 200, 200,0);\n"
-"border-image: url(./UI/icon/箭头_列表收起.png);}\n"
+"border-image: url(:/img/icon/箭头_列表收起.png);}\n"
 "QDoubleSpinBox::up-button::hover{\n"
 "background:rgba(200, 200, 200,100);\n"
-"border-image: url(./UI/icon/箭头_列表收起.png);}\n"
+"border-image: url(:/img/icon/箭头_列表收起.png);}\n"
 "")
         self.iouSpinBox.setMaximum(1.0)
         self.iouSpinBox.setSingleStep(0.01)
@@ -521,7 +523,7 @@ class Ui_mainWindow(object):
 " }\n"
 "QSlider::handle:horizontal {                               \n"
 "     border: 0px ; \n"
-"     border-image: url(./UI/icon/圆.png);\n"
+"     border-image: url(:/img/icon/圆.png);\n"
 "     width:15px;\n"
 "     margin: -7px -7px -7px -7px;                  \n"
 "} \n"
@@ -575,17 +577,17 @@ class Ui_mainWindow(object):
 "\n"
 "QDoubleSpinBox::down-button{\n"
 "background:rgba(200, 200, 200,0);\n"
-"border-image: url(./UI/icon/箭头_列表展开.png);}\n"
+"border-image: url(:/img/icon/箭头_列表展开.png);}\n"
 "QDoubleSpinBox::down-button::hover{\n"
 "background:rgba(200, 200, 200,100);\n"
-"border-image: url(./UI/icon/箭头_列表展开.png);}\n"
+"border-image: url(:/img/icon/箭头_列表展开.png);}\n"
 "\n"
 "QDoubleSpinBox::up-button{\n"
 "background:rgba(200, 200, 200,0);\n"
-"border-image: url(./UI/icon/箭头_列表收起.png);}\n"
+"border-image: url(:/img/icon/箭头_列表收起.png);}\n"
 "QDoubleSpinBox::up-button::hover{\n"
 "background:rgba(200, 200, 200,100);\n"
-"border-image: url(./UI/icon/箭头_列表收起.png);}\n"
+"border-image: url(:/img/icon/箭头_列表收起.png);}\n"
 "")
         self.confSpinBox.setMaximum(1.0)
         self.confSpinBox.setSingleStep(0.01)
@@ -605,7 +607,7 @@ class Ui_mainWindow(object):
 " }\n"
 "QSlider::handle:horizontal {                               \n"
 "     border: 0px ; \n"
-"     border-image: url(./UI/icon/圆.png);\n"
+"     border-image: url(:/img/icon/圆.png);\n"
 "     width:15px;\n"
 "     margin: -7px -7px -7px -7px;                  \n"
 "} \n"
@@ -659,12 +661,12 @@ class Ui_mainWindow(object):
 "    height: 20px;\n"
 "}\n"
 "QCheckBox::indicator:unchecked {\n"
-"    image: url(./UI/icon/button-off.png);\n"
+"    image: url(:/img/icon/button-off.png);\n"
 "}\n"
 "\n"
 "QCheckBox::indicator:checked {\n"
 "    \n"
-"    image: url(./UI/icon/button-on.png);\n"
+"    image: url(:/img/icon/button-on.png);\n"
 "}\n"
 "")
         self.checkBox.setChecked(True)
@@ -690,17 +692,17 @@ class Ui_mainWindow(object):
 "\n"
 "QSpinBox::down-button{\n"
 "background:rgba(200, 200, 200,0);\n"
-"border-image: url(./UI/icon/箭头_列表展开.png);}\n"
+"border-image: url(:/img/icon/箭头_列表展开.png);}\n"
 "QDoubleSpinBox::down-button::hover{\n"
 "background:rgba(200, 200, 200,100);\n"
-"border-image: url(./UI/icon/箭头_列表展开.png);}\n"
+"border-image: url(:/img/icon/箭头_列表展开.png);}\n"
 "\n"
 "QSpinBox::up-button{\n"
 "background:rgba(200, 200, 200,0);\n"
-"border-image: url(./UI/icon/箭头_列表收起.png);}\n"
+"border-image: url(:/img/icon/箭头_列表收起.png);}\n"
 "QSpinBox::up-button::hover{\n"
 "background:rgba(200, 200, 200,100);\n"
-"border-image: url(./UI/icon/箭头_列表收起.png);}\n"
+"border-image: url(:/img/icon/箭头_列表收起.png);}\n"
 "")
         self.rateSpinBox.setMinimum(1)
         self.rateSpinBox.setMaximum(20)
@@ -721,7 +723,7 @@ class Ui_mainWindow(object):
 " }\n"
 "QSlider::handle:horizontal {                               \n"
 "     border: 0px ; \n"
-"     border-image: url(./UI/icon/圆.png);\n"
+"     border-image: url(:/img/icon/圆.png);\n"
 "     width:15px;\n"
 "     margin: -7px -7px -7px -7px;                  \n"
 "} \n"
@@ -769,12 +771,12 @@ class Ui_mainWindow(object):
 "    height: 20px;\n"
 "}\n"
 "QCheckBox::indicator:unchecked {\n"
-"    image: url(./UI/icon/button-off.png);\n"
+"    image: url(:/img/icon/button-off.png);\n"
 "}\n"
 "\n"
 "QCheckBox::indicator:checked {\n"
 "    \n"
-"    image: url(./UI/icon/button-on.png);\n"
+"    image: url(:/img/icon/button-on.png);\n"
 "}\n"
 "")
         self.saveCheckBox.setChecked(True)
@@ -966,14 +968,14 @@ class Ui_mainWindow(object):
 "background-color: rgba(223, 223, 223, 150);}")
         self.runButton.setText("")
         icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/运行.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/暂停.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/运行.png"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/暂停.png"), QtGui.QIcon.Disabled, QtGui.QIcon.On)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/运行.png"), QtGui.QIcon.Active, QtGui.QIcon.Off)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/暂停.png"), QtGui.QIcon.Active, QtGui.QIcon.On)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/运行.png"), QtGui.QIcon.Selected, QtGui.QIcon.Off)
-        icon7.addPixmap(QtGui.QPixmap("./UI/icon/暂停.png"), QtGui.QIcon.Selected, QtGui.QIcon.On)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/运行.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/暂停.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/运行.png"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/暂停.png"), QtGui.QIcon.Disabled, QtGui.QIcon.On)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/运行.png"), QtGui.QIcon.Active, QtGui.QIcon.Off)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/暂停.png"), QtGui.QIcon.Active, QtGui.QIcon.On)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/运行.png"), QtGui.QIcon.Selected, QtGui.QIcon.Off)
+        icon7.addPixmap(QtGui.QPixmap(":/img/icon/暂停.png"), QtGui.QIcon.Selected, QtGui.QIcon.On)
         self.runButton.setIcon(icon7)
         self.runButton.setIconSize(QtCore.QSize(30, 30))
         self.runButton.setCheckable(True)
@@ -1004,7 +1006,7 @@ class Ui_mainWindow(object):
 "background-color: rgba(223, 223, 223, 150);}")
         self.stopButton.setText("")
         icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap("./UI/icon/终止.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon8.addPixmap(QtGui.QPixmap(":/img/icon/终止.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.stopButton.setIcon(icon8)
         self.stopButton.setIconSize(QtCore.QSize(30, 30))
         self.stopButton.setObjectName("stopButton")
@@ -1072,5 +1074,4 @@ class Ui_mainWindow(object):
         self.saveCheckBox.setText(_translate("mainWindow", "save automatically"))
         self.label_11.setText(_translate("mainWindow", "result statistics"))
         self.label_6.setText(_translate("mainWindow", "view"))
-from ..MouseLabel import Label_click_Mouse
 

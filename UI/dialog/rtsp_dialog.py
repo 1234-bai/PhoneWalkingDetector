@@ -10,6 +10,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+import UI.apprcc_rc
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -18,7 +19,7 @@ class Ui_Form(object):
         Form.setMinimumSize(QtCore.QSize(0, 40))
         Form.setMaximumSize(QtCore.QSize(16777215, 41))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("./UI/icon/实时视频流解析.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/img/icon/实时视频流解析.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Form.setWindowIcon(icon)
         Form.setStyleSheet("#Form{background:rgba(120,120,120,255)}")
         self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
@@ -91,3 +92,4 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label.setText(_translate("Form", "rtsp address:"))
         self.rtspButton.setText(_translate("Form", "confirm"))
+
