@@ -26,13 +26,11 @@ def loadModels(device):
     # people detector
     peoDt =  TargetsDetector(
         weights='libs/yolov5/weights/yolov5s.pt',
-        data='libs/yolov5/data/coco128.yaml',
         device=device
     )
     # phone detector
     phoneDt= TargetsDetector(
         weights='libs/yolov5/weights/phone_ep20.pt',
-        data='libs/yolov5/data/phone.yaml',
         device=device
     )
     # people pose estimation

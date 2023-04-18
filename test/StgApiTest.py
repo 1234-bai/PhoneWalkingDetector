@@ -26,17 +26,15 @@ ae = ActionEstimation(
 )
 
 poseTest = SingleImagePoseEstimation(
-    configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
+    checkpoint='weights/alphapose/fast_res50_256x192.pth',
     device=device
 )
 
 test =  TargetsDetector(
-    weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
-    data='libs/yolov5/data/coco128.yaml',
+    weights='weights/yolov5/yolov5s.pt',
     device=device
 )
-source='datasets/testdata/images'
+source='datasets/testdata/images/'
 dataset = loadData(source=source)
 
 
@@ -125,7 +123,7 @@ for path, im0s, vid_cap, s in dataset:
 
         
         im0 = annotator.result()
-        im0 = ADt.viewpPoseInImage(im0, poses, poseTest.getVisThres(), tracking=True)
+        im0 = ADt.viewpPoseInImage(im0, poses, poseTest.vis_thres, tracking=True)
 
     LOGGER.info(f"{s}\n      pose esatimation time: {peTime * 1E3:.1f}ms")
     LOGGER.info(f"      action esatimation time: {aeTime * 1E3:.1f}ms")

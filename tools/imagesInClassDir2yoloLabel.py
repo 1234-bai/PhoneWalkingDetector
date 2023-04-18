@@ -16,15 +16,14 @@ from _utils.PointsUtils import xyxy2centerwh
 input_dir = Path("datasets/stgcnTrainData/Mscoco")
 output_dir = Path(f'datasets/stgcnTrainData/Mscoco/out')
 
-label_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands',  'Stand', 'Sit', 'Photograph','Other'] # 根据动作分类，而不是手机出现的位置
+label_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Stand', 'Sit', 'Photograph','Other'] # 根据动作分类，而不是手机出现的位置
 label_dir = [(output_dir / x) for x in label_names]
 for x in label_dir:
     x.mkdir(parents=True, exist_ok=True)
 
 device = select_device(0)
 peopleDec =  TargetsDetector(
-    weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
-    data='libs/yolov5/data/coco128.yaml',
+    weights='weights/yolov5/yolov5s.pt',
     device=device
 )
 

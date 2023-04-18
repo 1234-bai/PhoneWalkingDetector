@@ -18,25 +18,22 @@ from _utils.PoseTransformer import getBodyPartIndex
 device=select_device(0)
 
 poseTest = SingleImagePoseEstimation(
-    configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
+    checkpoint='weights/alphapose/fast_res50_256x192.pth',
     device=device
 )
 
 phoneTest= TargetsDetector(
-    weights='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\weights\phone_ep20.pt',
-    data='D:\_NewCode\PythonPro\Phone_Walking_Detector\libs\yolov5\data\phone.yaml',
+    weights='weights/yolov5/phone_ep20.pt',
     device=select_device(0)
 )
 
 test =  TargetsDetector(
-    weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
-    data='libs/yolov5/data/coco128.yaml',
+    weights='weights/yolov5/yolov5s.pt',
     device=device
 )
 
 
-extension = 0.75
+extension = 0.4
 dataset = loadData(source='datasets/testdata/images')
 for path, im0s, vid_cap, s in dataset:
     # if dataset.mode == 'image': continue

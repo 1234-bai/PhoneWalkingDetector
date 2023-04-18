@@ -33,7 +33,7 @@ def writePoseJson(poses, label_index, label_name, copyTimes, jsonPath : Path, fi
 
 name = 'Mscoco'
 input_dir = Path("D:/QianXiaoYi/Pictures/Data/normal_images")
-output_dir = Path(f'datasets/TrainData/{name}')
+output_dir = Path(f'datasets/stgcnTrainData/{name}')
 output_train_json_dir = output_dir / (f'{name}_train')
 output_val_json_dir = output_dir / (f'{name}_val')
 output_train_json = f'{name}_train_label.json'
@@ -50,20 +50,12 @@ frameCount = 30
 
 device = select_device(0)
 peopleDec =  TargetsDetector(
-    weights='D:/_NewCode/PythonPro/Phone_Walking_Detector/libs/yolov5/weights/yolov5s.pt',
-    data='libs/yolov5/data/coco128.yaml',
+    weights='weights/yolov5/yolov5s.pt',
     device=device
 )
 
-# poseEst = SingleImagePoseEstimation(
-#     configFilePath='libs/Alphapose/configs/halpe_26/resnet/256x192_res50_lr1e-3_1x.yaml',
-#     checkpoint='libs/Alphapose/pretrained_models/halpe26_fast_res50_256x192.pth',
-#     device=0
-# )
-
 poseEst = SingleImagePoseEstimation(
-    configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
-    checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
+    checkpoint='weights/alphpose/fast_res50_256x192.pth',
     device=device
 )
 

@@ -15,7 +15,7 @@ def transform(
     name = 'Mscoco',
     parts = ['train', 'val'],
     input_root_dir = 'D:/_NewCode/PythonPro/st_gcn/st-gcn/stgcnTrainData/Mscoco/exp10',
-    output_dir = 'datasets/yolodata/',
+    output_dir = 'datasets/yolodata/train_val',
 ):
 
     input_root_dir = Path(input_root_dir)
