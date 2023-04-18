@@ -1,5 +1,6 @@
 import torch
 import sys
+import cv2
 import numpy as np
 from pathlib import Path
 from easydict import EasyDict as edict
@@ -10,31 +11,55 @@ ROOT = FILE.parents[0]  # Alphapose root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
-from alphapose.utils.transforms import get_func_heatmap_to_coord
+from alphapose.models import FastPose
+from alphapose.utils.transforms import heatmap_to_coord_simple, get_affine_transform, im_to_torch
 from alphapose.utils.pPose_nms import pose_nms
-from alphapose.utils.presets import SimpleTransform
-from alphapose.models import builder
-from alphapose.utils.config import update_config
+from alphapose.utils.bbox import (_box_to_center_scale, _center_scale_to_box)
 from alphapose.utils.vis import getTime
 from trackers.tracker_api import Tracker
-from trackers.tracker_cfg import cfg as tcfg
+from trackers.tracker_cfg import cfg as tracker_cfg
 from trackers import track
 
 
 class AlphaposeDataTransformer():
 
     @staticmethod
+    def imagePreprocess(
+        src, 
+        bbox,
+        input_size, # h,w
+    ):
+        xmin, ymin, xmax, ymax = bbox
+        inp_h, inp_w = input_size
+        _aspect_ratio = float(inp_w) / inp_h
+        center, scale = _box_to_center_scale(
+            xmin, ymin, xmax - xmin, ymax - ymin, _aspect_ratio)
+        scale = scale * 1.0
+
+
+        trans = get_affine_transform(center, scale, 0, [inp_w, inp_h])
+        img = cv2.warpAffine(src, trans, (int(inp_w), int(inp_h)), flags=cv2.INTER_LINEAR)
+        bbox = _center_scale_to_box(center, scale)
+
+        img = im_to_torch(img)
+        img[0].add_(-0.406)
+        img[1].add_(-0.457)
+        img[2].add_(-0.480)
+
+        return img, bbox
+
+    @staticmethod
     def heatmap2Pose(
         boxes,  # xyxy
-        cropped_boxes,  # xywh
+        croppedBoxes,  # xywh
         scores,
         ids,
         hm,
         numJoints,
-        norm_type,# 激活函数类型
-        hm_size,
-        use_heatmap_loss,
-        heatmap_to_coord,
+        normType,# 激活函数类型
+        hmSize,
+        useHeatmapLoss,
+        heatmap2coord,
         min_box_area=0, # min box area to filter out
         tracking = False
     ):
@@ -42,36 +67,21 @@ class AlphaposeDataTransformer():
         assert(boxes is not None and len(boxes) != 0)
         # location prediction (n, kp, 2) | score prediction (n, kp, 1)
         assert hm.dim() == 4
-        if hm.size()[1] == 136:
-            eval_joints = [*range(0,136)]
-        elif hm.size()[1] == 26:
-            eval_joints = [*range(0,26)]
-        elif hm.size()[1] == 133:
-            eval_joints = [*range(0,133)]
-        else:
-            eval_joints = list(range(numJoints))
+        eval_joints = list(range(numJoints))
         pose_coords = []
         pose_scores = []
 
         time = getTime()
         for i in range(hm.shape[0]):
-            bbox = cropped_boxes[i].tolist()
-            if isinstance(heatmap_to_coord, list):
-                pose_coords_body_foot, pose_scores_body_foot = heatmap_to_coord[0](
-                    hm[i][eval_joints[:-110]], bbox, hm_shape=hm_size, norm_type=norm_type)
-                pose_coords_face_hand, pose_scores_face_hand = heatmap_to_coord[1](
-                    hm[i][eval_joints[-110:]], bbox, hm_shape=hm_size, norm_type=norm_type)
-                pose_coord = np.concatenate((pose_coords_body_foot, pose_coords_face_hand), axis=0)
-                pose_score = np.concatenate((pose_scores_body_foot, pose_scores_face_hand), axis=0)
-            else:
-                pose_coord, pose_score = heatmap_to_coord(hm[i][eval_joints], bbox, hm_shape=hm_size, norm_type=norm_type)
+            bbox = croppedBoxes[i].tolist()
+            pose_coord, pose_score = heatmap2coord(hm[i][eval_joints], bbox, hm_shape=hmSize, norm_type=normType)
             pose_coords.append(torch.from_numpy(pose_coord).unsqueeze(0))
             pose_scores.append(torch.from_numpy(pose_score).unsqueeze(0))
         preds_img = torch.cat(pose_coords)
         preds_scores = torch.cat(pose_scores)
         if not tracking:
             boxes, scores, ids, preds_img, preds_scores, pick_ids = \
-                    pose_nms(boxes, scores, ids, preds_img, preds_scores, min_box_area, use_heatmap_loss=use_heatmap_loss)
+                    pose_nms(boxes, scores, ids, preds_img, preds_scores, min_box_area, use_heatmap_loss=useHeatmapLoss)
         _, time = getTime(time)
         
         _result = []
@@ -117,25 +127,32 @@ class SingleImagePoseEstimation():
     def __init__(
         self, 
         device : torch.device,
-        configFilePath='libs/Alphapose/configs/coco_256x192_res50_lr1e-3_1x.yaml',
         checkpoint='weights/alphapose/fast_res50_256x192.pth',
     ):
 
-        cfg = update_config(configFilePath)
-        self.cfg = cfg
         self.device = device
-        self.pose_dataset = builder.retrieve_dataset(cfg.DATASET.TRAIN)
-        self.poseType = cfg.DATASET.TRAIN.TYPE
+        cfg={
+            'NUM_JOINTS': 17,
+            'IMAGE_SIZE': [256, 192],
+            'HEATMAP_SIZE': [64, 48],
+            'NUM_DECONV_FILTERS': [256, 256, 256],
+            'NUM_LAYERS': 50
+        }
 
         # Load pose model
-        self.pose_model = builder.build_sppe(cfg.MODEL, preset_cfg=cfg.DATA_PRESET)
+        self.pose_model = FastPose(**cfg)
         print(f'Loading pose model from {checkpoint}...')
         self.pose_model.load_state_dict(torch.load(checkpoint, map_location=self.device))
         self.pose_model.to(self.device)
         self.pose_model.eval()
        
-        self.__setTransformation()
-        self.__setVisThres()
+        self.__num_joints = cfg['NUM_JOINTS']
+        self.__image_size = cfg['IMAGE_SIZE']
+        self.__heatmap_size = cfg['HEATMAP_SIZE']
+        # load image preprocess transormer
+        self.transformation = AlphaposeDataTransformer.imagePreprocess
+        # load profile of pose visualize profile
+        self.__vis_thres = [0.4] * self.__num_joints
 
         # self.tracker = Tracker(tcfg, self.device)
 
@@ -154,10 +171,10 @@ class SingleImagePoseEstimation():
 
             # pre process cropped human image for pose estimation
             image = np.array(image, dtype=np.uint8)[:, :, ::-1] # image channel BGR->RGB
-            inps = torch.zeros(len(boxes), 3, *(self.transformation._input_size))
+            inps = torch.zeros(len(boxes), 3, *(self.__image_size))
             cropped_boxes = []
             for i, box in enumerate(boxes):
-                inps[i], cropped_box = self.transformation.test_transform(image, box) # box is xyxy, cropped_box is xywh from box
+                inps[i], cropped_box = self.transformation(image, box, self.__image_size) # box is xyxy, cropped_box is xywh from box
                 # cropped_boxes = torch.FloatTensor([cropped_box])
                 cropped_boxes.append(cropped_box)
 
@@ -165,7 +182,7 @@ class SingleImagePoseEstimation():
 
             # Pose Estimation
             inps = inps.to(self.device)
-            hm = self.pose_model(inps)
+            hm = self.pose_model(inps)  # heatmap
 
             # tracking
             if tracking:
@@ -180,48 +197,24 @@ class SingleImagePoseEstimation():
                 torch.FloatTensor(confs), 
                 ids if tracking  else torch.Tensor(range(len(confs))), 
                 hm,
-                self.cfg.DATA_PRESET.NUM_JOINTS,
-                self.cfg.LOSS.get('NORM_TYPE', None),
-                self.cfg.DATA_PRESET.HEATMAP_SIZE,
-                self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss') == 'MSELoss',
-                get_func_heatmap_to_coord(self.cfg),
+                self.__num_joints,
+                None,
+                self.__heatmap_size,
+                True,
+                heatmap_to_coord_simple,
                 tracking = tracking
             )
             
         return poses, time + postProcessTime
-
-    def __setVisThres(self):
-        # load profile of pose visualize profile
-        loss_type = self.cfg.DATA_PRESET.get('LOSS_TYPE', 'MSELoss')
-        num_joints = self.cfg.DATA_PRESET.NUM_JOINTS
-        vis_thres = [0.4] * num_joints
-        if loss_type != 'MSELoss':
-            if 'JointRegression' in loss_type:
-                vis_thres = [0.05] * num_joints
-            elif loss_type == 'Combined':
-                if num_joints == 68:
-                    hand_face_num = 42
-                else:
-                    hand_face_num = 110
-                vis_thres = [0.4] * (num_joints - hand_face_num) + [0.05] * hand_face_num
-        self.__vis_thres = vis_thres
-
-    def getVisThres(self):
+    
+    @property
+    def vis_thres(self):
         return self.__vis_thres
+    
+    @property
+    def poseType(self):
+        return 'Mscoco'
 
-    def __setTransformation(self):
-         # load image preprocess transormer
-        cfg = self.cfg
-        self.transformation = SimpleTransform(
-            self.pose_dataset, 
-            scale_factor=0,
-            input_size=cfg.DATA_PRESET.IMAGE_SIZE,
-            output_size=cfg.DATA_PRESET.HEATMAP_SIZE,
-            rot=0, sigma=cfg.DATA_PRESET.SIGMA,
-            train=False, 
-            add_dpg=False, 
-            gpu_device=self.device
-        )
 
     def initTracker(self):
-        self.tracker = Tracker(tcfg, self.device)
+        self.tracker = Tracker(tracker_cfg, self.device)
