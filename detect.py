@@ -89,7 +89,8 @@ def run(
         labelIds, _, _, crops, img, times = pwd.detectSingleImage(im0, conf_thres=0.5, mode = dataset.mode, isNew=isNew, line_thickness = line_thickness)
 
         # print time
-        LOGGER.info(f"{infoStr}\n      people detection :{'' if len(labelIds) else '(no detections), '}{times[0] * 1E3:.1f}ms")
+        LOGGER.info(f"{infoStr}\n      phonewalking detection :{'' if len(labelIds) else '(no detections), '}{sum(times) * 1E3:.1f}ms")
+        LOGGER.info(f"      people detection :{times[0] * 1E3:.1f}ms")
         LOGGER.info(f"      pose estimation: {times[1] * 1E3:.1f}ms")
         LOGGER.info(f"      action estimation: {times[2] * 1E3:.1f}ms")
         LOGGER.info(f"      phone detection: {times[3] * 1E3:.1f}ms")

@@ -66,7 +66,7 @@ class DetThread(QThread):
 
             # Load model
             model = self.load_model(self.model_type)
-            names = model.getNames()  # get class names
+            names = model.class_names  # get class names
 
             # Dataloader
             dataset = loadData(self.source)
