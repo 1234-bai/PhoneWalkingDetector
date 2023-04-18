@@ -1,24 +1,16 @@
 import torch
-import sys
 import cv2
 import numpy as np
-from pathlib import Path
 from easydict import EasyDict as edict
 
-
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # Alphapose root directory
-if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
-
-from alphapose.models import FastPose
-from alphapose.utils.transforms import heatmap_to_coord_simple, get_affine_transform, im_to_torch
-from alphapose.utils.pPose_nms import pose_nms
-from alphapose.utils.bbox import (_box_to_center_scale, _center_scale_to_box)
-from alphapose.utils.vis import getTime
-from trackers.tracker_api import Tracker
-from trackers.tracker_cfg import cfg as tracker_cfg
-from trackers import track
+from .alphapose.models import FastPose
+from .alphapose.utils.transforms import heatmap_to_coord_simple, get_affine_transform, im_to_torch
+from .alphapose.utils.pPose_nms import pose_nms
+from .alphapose.utils.bbox import (_box_to_center_scale, _center_scale_to_box)
+from .alphapose.utils.vis import getTime
+from .trackers.tracker_api import Tracker
+from .trackers.tracker_cfg import cfg as tracker_cfg
+from .trackers import track
 
 
 class AlphaposeDataTransformer():
@@ -109,9 +101,9 @@ class AlphaposeDataTransformer():
         assert(image is not None)
 
         if vis_fast:
-            from alphapose.utils.vis import vis_frame_fast as vis_frame
+            from .alphapose.utils.vis import vis_frame_fast as vis_frame
         else:
-            from alphapose.utils.vis import vis_frame
+            from .alphapose.utils.vis import vis_frame
         opt = edict({
             'pose_track':False,
             'tracking':tracking,

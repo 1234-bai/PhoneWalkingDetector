@@ -15,11 +15,11 @@ import torch.nn as nn
 from .utils.utils import *
 from .utils.log import logger
 from .utils.kalman_filter import KalmanFilter
-from tracking.matching import *
-from tracking.basetrack import BaseTrack, TrackState
-from ReidModels.osnet import *
-from ReidModels.osnet_ain import osnet_ain_x1_0
-from ReidModels.resnet_fc import resnet50_fc512
+from .tracking.matching import *
+from .tracking.basetrack import BaseTrack, TrackState
+from .ReidModels.osnet import *
+from .ReidModels.osnet_ain import osnet_ain_x1_0
+from .ReidModels.resnet_fc import resnet50_fc512
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
