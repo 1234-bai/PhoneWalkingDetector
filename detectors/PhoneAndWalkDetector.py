@@ -11,19 +11,6 @@ from _utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Key
 from Detector import Detector
 
 
-def phoneInHand(keypoints, poseFormat, phoneXyxy):
-    wristpoints = keypoints[getBodyPartIndex(poseFormat, 'wrist')]
-    if pointsAnyInBox(wristpoints, phoneXyxy, 0.75):
-        return True
-    return False
-
-
-def phoneInEars(keypoints, poseFormat, phoneXyxy):
-    earpoints = keypoints[getBodyPartIndex(poseFormat, 'ear')]
-    if pointsAnyInBox(earpoints, phoneXyxy, 0.1):
-        return True
-    return False
-
 class PhoneWalkDetector(Detector):
 
     def __init__(self, device = ''):
@@ -120,28 +107,19 @@ class PhoneWalkDetector(Detector):
         return conf
 
     @staticmethod
-    def playOrcall(phoneXyxyBoxes, phoneConfs, peoKeypoints, poseType):
-        pB = None
-        conf = [0.0, 0.0, 1.0]   # (phone in hand, phone ears, other)
-        for i, phoneBox in enumerate(phoneXyxyBoxes):  # 对于每个手机，是否与人手重合
-            if phoneInHand(peoKeypoints, poseType, phoneBox):
-                if phoneInEars(peoKeypoints, poseType, phoneBox):
-                    pB = phoneBox
-                     # conf[1:] = [phoneConfs[i], 1-phoneConfs[i]]
-                    conf[1:] = [1.0, 0]
-                else:
-                    # return phoneBox, [phoneConfs[i], 0.0, 1-phoneConfs[i]]
-                    return phoneBox, [1.0, 0.0, 0.0]
-        return pB, conf
+    def phoneInHand(keypoints, poseFormat, phoneXyxy):
+        wristpoints = keypoints[getBodyPartIndex(poseFormat, 'wrist')]
+        if pointsAnyInBox(wristpoints, phoneXyxy, 0.75):
+            return True
+        return False
 
-    def __existedPhoneDetection(self, img, dt):
-        # (手持)手机检测
-        _, phoneXyxyBoxes, confs, time = self.phoneDt.detectSingleImage(img, conf_thres=0.6, classes=[0])
-        dt.t += time
-        if len(phoneXyxyBoxes):
-            return phoneXyxyBoxes, confs  
-        else:
-            return None, None
+    @staticmethod
+    def phoneInEars(keypoints, poseFormat, phoneXyxy):
+        earpoints = keypoints[getBodyPartIndex(poseFormat, 'ear')]
+        if pointsAnyInBox(earpoints, phoneXyxy, 0.45):
+            return True
+        return False
+
 
     def __playPhoneDetection(self, peoCrop, cropBox, peoKeypoints, poseType, dt):
         '''
@@ -151,12 +129,23 @@ class PhoneWalkDetector(Detector):
                 phone box based img box
                 actionId based phone 
         '''
-        boxes, confs = self.__existedPhoneDetection(peoCrop, dt)
-        if boxes is None:
-            return None, [0.0, 0.0, 1.0]
-        # 人像图中存在手机
-        boxes += np.array(cropBox)[[0, 1, 0, 1]]
-        return self.playOrcall(boxes, confs, peoKeypoints, poseType)
+        # (手持)手机检测
+        _, phoneXyxyBoxes, confs, time = self.phoneDt.detectSingleImage(peoCrop, conf_thres=0.6, classes=[0])
+        dt.t += time
+        pB = None
+        conf = [0.0, 0.0, 1.0]   # (phone in hand, phone ears, other)
+        if(len(phoneXyxyBoxes)):   # 人像图中存在手机
+            for i, phoneBox in enumerate(phoneXyxyBoxes):  # 对于每个手机，是否与人手重合
+                phoneBox += np.array(cropBox)[[0, 1, 0, 1]]
+                if self.phoneInHand(peoKeypoints, poseType, phoneBox):
+                    if self.phoneInEars(peoKeypoints, poseType, phoneBox):
+                        pB = phoneBox
+                        # conf[1:] = [confs[i], 1-confs[i]]
+                        conf[1:] = [1.0, 0]
+                    else:
+                        # return phoneBox, [confs[i], 0.0, 1-confs[i]]
+                        return phoneBox, [1.0, 0.0, 0.0]
+        return pB, conf
 
 
     def __inferConfdience(
@@ -178,13 +167,12 @@ class PhoneWalkDetector(Detector):
         return conf
 
 
-    def drawPlayphoneAndCall(self, annotator, peopleBox, phoneBox, actionId, conf, phoneBoxOffset = None):
+    def drawPlayphoneAndCall(self, annotator, peopleBox, phoneBox, actionId, conf):
         red_bgr = (0, 0, 256)
         black_bgr = (0, 0, 0)
         color = red_bgr if actionId == 1 or actionId == 2 else colors(0)
         annotator.box_label(peopleBox, label=self.getLabel(actionId)+f':{conf:.2f}', color=color)   # 深拷贝，会直接在原始图片上进行修改
         if phoneBox is not None:
-            if phoneBoxOffset is not None: phoneBox += phoneBoxOffset
             annotator.box_label(phoneBox, label='phone', color=colors(5), txt_color=black_bgr)
 
 
@@ -207,7 +195,7 @@ class PhoneWalkDetector(Detector):
         _, peopleXyxyBoxes, peoConfs, time = self.peoDt.detectSingleImage(img, classes=[0])
 
         # time recorder
-        dt = [Profile(), Profile(), Profile()]
+        dt = [Profile(), Profile()]
         peTime = 0.0
         
         if(len(peopleXyxyBoxes) > 0):   # 存在人像
@@ -217,36 +205,28 @@ class PhoneWalkDetector(Detector):
 
             if mode == 'image':
 
-                for i, peopleBox in enumerate(peopleXyxyBoxes):
+                # 根据人像检测骨骼结点
+                poses, peTime = self.poseEstimation.process(im0, peopleXyxyBoxes, peoConfs) # 获得骨骼结点 
+
+                # 对每个骨骼结点进行手机检测和动作检测
+                for pose in poses: #   对于每个人像
+
+                    # action estimation
+                    peopleBox = xywh2xyxy(pose['bbox'])  # 获得此人的人像盒子xyxy
+                    keypoints = pose['keypoints'] # 获得此人的骨骼结点
+                    score = pose['kp_score'] # 获得此人的骨骼结点置信度
+                    boxConf = float(pose['proposal_score'].cpu())   # poeple pose conf
+                    pwConf = self.__phoneWalkingAeOfSingleImage(keypoints, score, dt[0]) # confidenece of phonewalking estimation   
+
                     # (hold) phone detection
                     crop = save_one_box(peopleBox, im0, save=False, BGR=True)
-                    phoneBoxes, phoneConfs = self.__existedPhoneDetection(crop, dt[1])
+                    phoneBox, phoneConf = self.__playPhoneDetection(crop, peopleBox, keypoints, self.poseEstimation.poseType, dt[1])
 
-                    if phoneBoxes is not None:
-                        xyxyOffset = np.array(peopleBox)[[0, 1, 0, 1]]
-                        # 根据人像检测骨骼结点
-                        poses, peTime = self.poseEstimation.process(crop, [peopleBox-xyxyOffset], [peoConfs[i]]) # 获得骨骼结点 
-                        dt[2].t += peTime
-                        if len(poses):
-                            assert(len(poses) == 1)
-                            pose = poses[0]
-                            # action estimation
-                            keypoints = pose['keypoints'] # 获得此人的骨骼结点
-                            score = pose['kp_score'] # 获得此人的骨骼结点置信度
-                            boxConf = float(pose['proposal_score'].cpu())   # poeple pose conf
-                            pwConf = self.__phoneWalkingAeOfSingleImage(keypoints, score, dt[0]) # confidenece of phonewalking estimation
-                            # phone conf
-                            phoneBox, phoneConf =  self.playOrcall(phoneBoxes, phoneConfs, keypoints, self.poseEstimation.poseType)
-
-                            conf = self.__inferConfdience(boxConf, pwConf, phoneConf)
-                            actionId = np.array(conf).argmax()
-                            if conf[actionId] >= conf_thres:
-                                self.drawPlayphoneAndCall(annotator, peopleBox, phoneBox, actionId, conf[actionId], xyxyOffset)
-                                fillResults(crop, peopleBox, actionId, conf[actionId])
-                    else:
-                        conf = 1
-                        self.drawPlayphoneAndCall(annotator, peopleBox, None, 4, conf, None)
-                        fillResults(crop, peopleBox, 4, conf)
+                    conf = self.__inferConfdience(boxConf, pwConf, phoneConf)
+                    actionId = np.array(conf).argmax()
+                    if conf[actionId] >= conf_thres:
+                        self.drawPlayphoneAndCall(annotator, peopleBox, phoneBox, actionId, conf[actionId])
+                        fillResults(crop, peopleBox, actionId, conf[actionId])
             else:
 
                 if isNew: # new video or first video
@@ -271,23 +251,18 @@ class PhoneWalkDetector(Detector):
                 for id,tvc in enumerate(poseStore):
                     if id in existedPeo[0]:
                         if len(tvc) > 1:
+                            # action estimation
+                            pwConf =  self.__phoneWalkingAeOfMultiCaps(tvc, dt[0])
                             # phone detection
                             peopleBox = existedPeo[1][id][0]
                             crop = save_one_box(peopleBox, im0, save=False, BGR=True)
                             phoneBox, phoneConf = self.__playPhoneDetection(crop, peopleBox, tvc[-1][:,:2], self.poseEstimation.poseType, dt[1])
-                            if phoneBox is not None:
-                                # action estimation
-                                pwConf =  self.__phoneWalkingAeOfMultiCaps(tvc, dt[0])
-                                # infer confidence 
-                                conf = self.__inferConfdience(existedPeo[1][id][1], pwConf, phoneConf)
-                                actionId = np.array(conf).argmax()
-                                if conf[actionId] >= conf_thres:
-                                    self.drawPlayphoneAndCall(annotator, peopleBox, phoneBox, actionId, conf[actionId])
-                                    fillResults(crop, peopleBox, actionId, conf[actionId])
-                            else:
-                                conf = 1
-                                self.drawPlayphoneAndCall(annotator, peopleBox, None, 4, conf, None)
-                                fillResults(crop, peopleBox, 4, conf)
+                            # infer confidence 
+                            conf = self.__inferConfdience(existedPeo[1][id][1], pwConf, phoneConf)
+                            actionId = np.array(conf).argmax()
+                            if conf[actionId] >= conf_thres:
+                                self.drawPlayphoneAndCall(annotator, peopleBox, phoneBox, actionId, conf[actionId])
+                                fillResults(crop, peopleBox, actionId, conf[actionId])
                     else:
                         tvc.clear()
 
@@ -298,7 +273,7 @@ class PhoneWalkDetector(Detector):
         # end of people detector -----------------------------------------------------------------------
 
         # cls, boxes, crops, annotatedImages, time,
-        return labelIds, targetBoxes, confs, crops, img, [time, peTime + dt[2].t, dt[0].t, dt[1].t]
+        return labelIds, targetBoxes, confs, crops, img, [time, peTime, dt[0].t, dt[1].t]
 
     # def getLabel(self, cls):
     #     # return ['phoneWalking', 'call', 'other'][cls]

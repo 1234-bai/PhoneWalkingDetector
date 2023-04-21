@@ -7,13 +7,19 @@ from libs.yolov5 import (
         ConfusionMatrix, LoadImagesAndLabels, getCorrectPredictionMatrix, ap_per_class,
         increment_path, print_args, check_requirements, LOGGER
     )
-from detectors import PhoneWalkDetector, YoloPhoneWalkDetector
+from detectors import PhoneAndWalkDetector, PhoneWalkDetector, YoloPhoneWalkDetector
 
 
 class Model:
     def __init__(self, model_type, device) -> None:
         self.model_type = model_type
-        self.model =  YoloPhoneWalkDetector(device) if model_type == 'yolo' else PhoneWalkDetector(device)
+        self.model =  (
+            YoloPhoneWalkDetector(device) if model_type == 'yolo' 
+            else (
+                PhoneWalkDetector(device) if model_type == 'pwd' 
+                else PhoneAndWalkDetector(device)
+            )
+        )
 
 
     def detectSingleImage(self, im0, conf_thres):
@@ -42,16 +48,13 @@ def run(
     for im, targetLabels, path in tqdm(dataset, desc=images_path):
         allDetections, time = pwd.detectSingleImage(im.numpy(), conf_thres=0.5)
         totalTime += time
-        detections = allDetections[:, 5] if len(allDetections) else torch.tensor([])
-        labels = targetLabels[:, 0]
-        detections = allDetections[detections < class_count]
-        labels = targetLabels[labels < class_count]
-        cMatrix.process_batch(detections, labels)
-        correct = getCorrectPredictionMatrix(detections, labels, iouv)
+        detections = allDetections if len(allDetections) else torch.tensor([])
+        cMatrix.process_batch(detections, targetLabels)
+        correct = getCorrectPredictionMatrix(detections, targetLabels, iouv)
         if len(detections):
-            stats.append((correct, detections[:, 4], detections[:, 5], labels[:, 0]))  # (correct, conf, pcls, tcls)
+            stats.append((correct, detections[:, 4], detections[:, 5], targetLabels[:, 0]))  # (correct, conf, pcls, tcls)
         else:
-            stats.append((correct, *torch.zeros((2, 0)), labels[:, 0]))
+            stats.append((correct, *torch.zeros((2, 0)), targetLabels[:, 0]))
 
     save_dir=increment_path(save_dir+'/'+name, mkdir=True)
 
@@ -66,9 +69,9 @@ def run(
     # Print/Save results
     with open(save_dir / 'result.txt', "w") as f:
 
-        s = ('%11s' * 5) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
+        s = ('%11s' * 6) % ('Class', 'Instances', 'P', 'R', 'mAP50', 'mAP50-95')
         f.write(s+'\n')
-        pf = '%11i' + '%11.3g' * 4  # print format
+        pf = '%11s' + '%11i' + '%11.3g' * 4  # print format
         s = pf % ('all', nt.sum(), mp, mr, map50, map)
         f.write(s+'\n')
         # Print results per class
@@ -92,7 +95,7 @@ def parse_opt():
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--model', default='pwd', dest = 'model_type',help='test modeltype, i.e. yolo or pwd')
     parser.add_argument('--save-dir', default='runs/test', help='save results to project/name')
-    parser.add_argument('--name', default='exp', help='save results to project/name')
+    parser.add_argument('--name', default='exp_new_label_phoneWalk_nl', help='save results to project/name')
     opt = parser.parse_args()
     print_args(vars(opt))
     return opt

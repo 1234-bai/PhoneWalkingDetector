@@ -8,5 +8,6 @@ if str(ROOT) not in sys.path:
 
 from PhoneWalkDetector import PhoneWalkDetector
 from Yolov5PhoneWalkDetector import YoloPhoneWalkDetector
+from PhoneAndWalkDetector import PhoneWalkDetector as PhoneAndWalkDetector
 
-__all__ = [PhoneWalkDetector, YoloPhoneWalkDetector]
+__all__ = [PhoneWalkDetector, YoloPhoneWalkDetector, PhoneAndWalkDetector]
