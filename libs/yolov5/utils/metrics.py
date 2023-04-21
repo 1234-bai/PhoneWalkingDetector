@@ -153,9 +153,10 @@ class ConfusionMatrix:
         gt_classes = labels[:, 0].int()
         detection_classes = detections[:, 5].int()
         iou = box_iou(labels[:, 1:], detections[:, :4]) # 获得每个矩形交并比的笛卡尔矩阵
-        correct_class = labels[:, 0:1] == detection_classes
+        # correct_class = labels[:, 0:1] == detection_classes
 
-        x = torch.where((iou > self.iou_thres) & correct_class)   # 筛选出交并比大于0.45的坐标
+        # x = torch.where((iou > self.iou_thres) & correct_class)   # 筛选出交并比大于0.45的坐标
+        x = torch.where((iou > self.iou_thres))   # 筛选出交并比大于0.45的坐标
         if x[0].shape[0]:
             matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy() # 将坐标，交并比连接在一起
             if x[0].shape[0] > 1:
