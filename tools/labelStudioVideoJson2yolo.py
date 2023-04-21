@@ -79,70 +79,56 @@ def getFrameBoxes(boxes, labels, frameId):
     return res
 
 def run(
-    input_json,
-    input_videos_dir,
+    source,
+    videos_dir,
     output_dir,
-    labelNames,
+    label_names,
+    cut_img = False,
 ):
     opd = Path(output_dir)
     (opd / 'images').mkdir(parents=True, exist_ok=True)
     (opd / 'labels').mkdir(parents=True, exist_ok=True)
-    ivd = Path(input_videos_dir)
-    labelDic = {label : i for i, label in enumerate(labelNames)}
-    dic = readJson(Path(input_json))
+    ivd = Path(videos_dir)
+    labelDic = {label : i for i, label in enumerate(label_names)}
+    dic = readJson(Path(source))
     sumTxtPath = Path(opd / 'test.txt')
     f = sumTxtPath.open("w"); f.close()
     for vf in dic:  # video file
         videoname = Path(vf['video'])
         videostem = videoname.stem
         videoname = videoname.name
-        cap = cv2.VideoCapture(str(ivd / videoname))
+        if cut_img:  cap = cv2.VideoCapture(str(ivd / videoname))
         boxes = vf['box']
         boxKeyFrames, classes = parseBoxes(boxes, labelDic) 
         framesCount = boxes[0]['framesCount']
         for i in tqdm(range(framesCount), desc=videoname):
-            _, frame = cap.read()
-            imgName = videostem + f'_{i+1}.jpg'
-            cv2.imwrite(str(opd / 'images' / imgName), frame) #存入快照
-            clses = getFrameBoxes(boxKeyFrames, classes, i+1)
-            txtPath = Path(opd / 'labels' / (videostem + f'_{i+1}.txt'))
-            with txtPath.open("w") as f:
-                for cls in clses:
-                    f.write(' '.join(map(xformat, cls))+'\n')
-            with sumTxtPath.open("a") as f:
-                f.write('./images/'+imgName+'\n')
-        cap.release()
+            if cut_img:
+                if i % 5 == 0: _, frame = cap.read()  # 每5帧，丢1帧
+                _, frame = cap.read()
+            if not cut_img or frame is not None:
+                imgName = videostem + f'_{i+1}.jpg'
+                if cut_img: cv2.imwrite(str(opd / 'images' / imgName), frame) #存入快照
+                txtPath = Path(opd / 'labels' / (videostem + f'_{i+1}.txt'))
+                clses = getFrameBoxes(boxKeyFrames, classes, i+1)
+                with txtPath.open("w") as f:
+                    for cls in clses:
+                        f.write(' '.join(map(xformat, cls))+'\n')
+                with sumTxtPath.open("a") as f:
+                    f.write('./images/'+imgName+'\n')
+        if cut_img: cap.release()
 
 
-if __name__ == "__main__":
-    run(
-        input_json='datasets/yolodata/phonewalking_test.json',
-        input_videos_dir='C:/Users/QianXiaoYi/AppData/Local/label-studio/label-studio/media/upload/1',
-        output_dir='datasets/yolodata/test',
-        labelNames=['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Walking', 'Other']
-    )
+def parse_opt():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', type=str, default='datasets/yolodata/old_label_phoneAndWalking_hl.json')
+    parser.add_argument('--videos-dir', type=str, default='C:/Users/QianXiaoYi/AppData/Local/label-studio/label-studio/media/upload/1')
+    parser.add_argument('--output-dir', type=str, default='datasets/yolodata/test')
+    parser.add_argument('--label-names', nargs='+', type=str, default=['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Walking', 'Other'])
+    parser.add_argument('--cut-img', action='store_true')
+    opt = parser.parse_args()
+    return opt 
 
 
-# def parse_opt():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('--source', type=str, default='datasets/testdata/images', help='file/dir/URL/glob/screen/0(webcam)')
-#     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-#     parser.add_argument('--view-img', action='store_true', help='show results')
-#     parser.add_argument('--line-thickness', default=2, type=int, help='bounding box thickness (pixels)')
-#     parser.add_argument('--nosave', action='store_true', help='save images/videos result')
-#     parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
-#     parser.add_argument('--save-dir', default='runs/detect', help='save results to project/name')
-#     parser.add_argument('--name', default='exp', help='save results to project/name')
-#     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-#     parser.add_argument('--vid-stride', type=int, default=1, help='video frame-rate stride')
-#     opt = parser.parse_args()
-#     return opt
-
-
-# def main(opt):
-#     run(**vars(opt))
-
-
-# if __name__ == '__main__':
-#     opt = parse_opt()
-#     main(opt)
+if __name__ == '__main__':
+    opt = parse_opt()
+    run(**vars(opt))
