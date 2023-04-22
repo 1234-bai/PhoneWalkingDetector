@@ -7,7 +7,7 @@ import os
 import time
 import cv2
 from pathlib import Path
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMenu
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMenu, QAction
 from PyQt5.QtCore import Qt, QPoint, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
 
