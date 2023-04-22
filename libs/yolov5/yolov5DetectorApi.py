@@ -44,7 +44,6 @@ class TargetsDetector:
         im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         im = np.ascontiguousarray(im)  # contiguous
 
-        results = [[], [], []]
         # 图片像素点归一化
         with self.dt[0]:
             im = torch.from_numpy(im).to(self.device)
@@ -61,24 +60,23 @@ class TargetsDetector:
         with self.dt[2]:
             pred = non_max_suppression(pred, conf_thres, iou_thres=0.45, classes = classes, agnostic = False, max_det=max_det)
 
-        # 一张图片目标检测后会有多类目标被识别出来
+        results = [[], [], []]
         # imc = im0.copy()  # for save_crop
-        for det in pred:  # per image，对于每类识别出来的目标
-            # det : N * (x1, y1, x2, y2, conf, class)
-            if len(det):
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+        det = pred[0]  # per image，对于每张图片
+        # det : N * (x1, y1, x2, y2, conf, class)
+        if len(det):
+            # Rescale boxes from img_size to im0 size
+            det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
-                # 每类识别目标有多个
-                for *xyxy, conf, cls in reversed(det): # 对于特定一类检测目标的多个
-                    # crop = save_one_box(xyxy, imc, save=False, BGR=True)
-                    results[0].append(int(cls.cpu()))
-                    results[1].append(torch.tensor(xyxy).tolist())
-                    # results[2].append(crop)
-                    results[2].append(float(conf.cpu()))
-                    # results.append((c, torch.tensor(xyxy).tolist(), crop, conf))
+            for *xyxy, conf, cls in reversed(det): # 对于每张图片的多个目标
+                # crop = save_one_box(xyxy, imc, save=False, BGR=True)
+                results[0].append(int(cls.cpu()))
+                results[1].append(torch.tensor(xyxy).tolist())
+                # results[2].append(crop)
+                results[2].append(float(conf.cpu()))
+                # results.append((c, torch.tensor(xyxy).tolist(), crop, conf))
 
-        return results[0], results[1], results[2], self.dt[1].dt
+        return results[0], results[1], results[2], self.dt[1].dt + self.dt[0].dt + self.dt[2].dt
     
     def getLabelName(self, c):
         return self.names[c]
