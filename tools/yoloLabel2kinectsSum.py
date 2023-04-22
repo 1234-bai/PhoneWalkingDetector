@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
 
 from libs.yolov5 import select_device, LoadImageAndLabels
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from _utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
+from utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
 
 device = select_device(0)
 poseEst = SingleImagePoseEstimation(

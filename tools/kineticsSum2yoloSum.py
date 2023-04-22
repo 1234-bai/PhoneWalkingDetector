@@ -8,7 +8,7 @@ ROOT = FILE.parents[1]  # Project root directory: D:\_NewCode\PythonPro\Phone_Wa
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
-from _utils.PoseTransformer import readJson
+from utils.PoseTransformer import readJson
 
 
 def transform(

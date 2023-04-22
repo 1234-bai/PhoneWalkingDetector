@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
 
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, select_device, LOGGER, loadData
-from _utils.PointsUtils import xyxy2centerwh
+from utils.PointsUtils import xyxy2centerwh
 
 phoneTest= TargetsDetector(
     weights='weights/yolov5/phoneEp80.pt',

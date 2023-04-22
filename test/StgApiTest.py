@@ -12,8 +12,8 @@ from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, LOGGER, select_device, loadData
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation
-from _utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
-from _utils.PointsUtils import xywh2xyxy
+from utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
+from utils.PointsUtils import xywh2xyxy
 
 
 device=select_device(0)

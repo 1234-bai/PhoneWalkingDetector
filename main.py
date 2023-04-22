@@ -31,7 +31,7 @@ class DetThread(QThread):
 
     def __init__(self):
         super(DetThread, self).__init__()
-        self.source = '0'
+        self.source = 0
         self.conf_thres = 0.25
         self.jump_out = False                   # jump out of the loop
         self.is_continue = True                 # continue/pause

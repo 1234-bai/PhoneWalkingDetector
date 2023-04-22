@@ -11,8 +11,8 @@ if str(ROOT) not in sys.path:
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, select_device, save_one_box, loadData
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
-from _utils.PointsUtils import getExtendenBox, pointsAnyInBox, xywh2xyxy
-from _utils.PoseTransformer import getBodyPartIndex
+from utils.PointsUtils import getExtendenBox, pointsAnyInBox, xywh2xyxy
+from utils.PoseTransformer import getBodyPartIndex
 
 
 device=select_device(0)

@@ -7,7 +7,7 @@ ROOT = FILE.parents[1]  # Project root directory: D:\_NewCode\PythonPro\Phone_Wa
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
-from _utils.PointsUtils import xywh2xyxy
+from utils.PointsUtils import xywh2xyxy
 from libs.st_gcn.StgcnApi import ActionEstimation
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, loadData, select_device

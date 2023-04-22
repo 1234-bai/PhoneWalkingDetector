@@ -11,8 +11,8 @@ if str(ROOT) not in sys.path:
 from libs.yolov5 import select_device, loadData, save_one_box
 from libs.yolov5.yolov5DetectorApi import TargetsDetector
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation as PoseEstimation
-from _utils.PointsUtils import pointInBox, pointsAnyInBox, xywh2xyxy
-from _utils.PoseTransformer import getBodyPartIndex
+from utils.PointsUtils import pointInBox, pointsAnyInBox, xywh2xyxy
+from utils.PoseTransformer import getBodyPartIndex
 
 def run(
     source,

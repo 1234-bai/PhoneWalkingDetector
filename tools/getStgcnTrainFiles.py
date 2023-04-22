@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
 from libs.yolov5.yolov5DetectorApi import TargetsDetector
 from libs.yolov5 import loadData, select_device
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADT
-from _utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
+from utils.PoseTransformer import writeJson, readJson, alphaose2kineticsFormat
 
 def jsonPosePack(poses, label_index, label_name, copyTimes):
     data = []

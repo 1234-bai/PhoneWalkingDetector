@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from libs.yolov5.yolov5DetectorApi import TargetsAnnotator
-from _utils.PointsUtils import xywh2xyxy
+from utils.PointsUtils import xywh2xyxy
 
 def readJson(jsonFilename : Path):
     if jsonFilename.exists() and os.path.getsize(jsonFilename) :

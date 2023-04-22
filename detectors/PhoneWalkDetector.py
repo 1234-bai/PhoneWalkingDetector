@@ -5,8 +5,8 @@ from libs.yolov5 import colors, save_one_box, select_device,Profile
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
 from libs.st_gcn.StgcnApi import ActionEstimation as PhoneActionEstimation
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation as StandActionEstimation
-from _utils.PointsUtils import pointsAnyInBox, xywh2xyxy
-from _utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Keypoints2CocoCut as co2cocut
+from utils.PointsUtils import pointsAnyInBox, xywh2xyxy
+from utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Keypoints2CocoCut as co2cocut
 
 from Detector import Detector
 
