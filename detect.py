@@ -86,7 +86,7 @@ def run(
         # time recorder
         capCount += 1
 
-        labelIds, _, _, crops, img, times = pwd.detectSingleImage(im0, conf_thres=0.5, mode = dataset.mode, isNew=isNew, line_thickness = line_thickness)
+        labelIds, _, _, crops, img, times = pwd.detectSingleImage(im0, conf_thres=0.5, mode = 'image', isNew=isNew, line_thickness = line_thickness)
 
         # print time
         LOGGER.info(f"{infoStr}\n      phonewalking detection :{'' if len(labelIds) else '(no detections), '}{sum(times) * 1E3:.1f}ms")

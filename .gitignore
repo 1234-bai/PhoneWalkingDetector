@@ -3,6 +3,7 @@ datasets/
 
 # run result
 runs/
+test/line.py
 
 # models
 weights/

@@ -16,13 +16,12 @@ from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeData
 
 device=select_device(0)
 ae = ActionEstimation(
-    weight_file='weights/st_gcn/stgcn_class6_150_p90.pt',
+    weight_file='weights/stgcn/stgcn_class6_150_p90.pt',
     class_names= ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'photo', 'Stand', 'other'],
     layout='Mscoco'
 )
 
 poseTest = SingleImagePoseEstimation(
-    checkpoint='libs/Alphapose/pretrained_models/fast_res50_256x192.pth',
     device=device
 )
 
@@ -53,16 +52,16 @@ for path, im0s, vid_cap, s in dataset:
     if(len(peopleXyxyBoxes) > 0):
 
         # 根据人像检测骨骼结点
-        poses,_ = poseTest.process(im0, peopleXyxyBoxes, confs, tracking=True) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
+        poses,_ = poseTest.process(im0, peopleXyxyBoxes, confs, tracking=False) # 获得骨骼结点 list of 'keypoints:list , scores:list, box: list of 4}' index is people_number
             
         for i,pose in enumerate(poses): #   对于每个人像
             box = pose['bbox'] # xywh
             id = pose['idx']
-            annotator.box_label(xywh2xyxy(box), label=str(id), color=colors(0))
+            annotator.box_label(xywh2xyxy(box), label=str(i)+','+str(id), color=colors(0))
             annotator2.box_label(peopleXyxyBoxes[i], label=str(i), color=colors(0))
 
     img = annotator.result()
-    img = ADt.viewpPoseInImage(img, poses, poseTest.getVisThres(), tracking=True)
+    img = ADt.viewpPoseInImage(img, poses, poseTest.vis_thres, tracking=False)
     cv2.imshow('alpha', img)
     img = annotator2.result()
     cv2.imshow('yolov5', img)

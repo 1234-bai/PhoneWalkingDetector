@@ -93,7 +93,7 @@ class AlphaposeDataTransformer():
         image, # BGR
         poses,
         vis_threshold,  # 可视阈值
-        vis_fast = False,
+        vis_fast = True,
         showbox=False, 
         tracking=False
     ):

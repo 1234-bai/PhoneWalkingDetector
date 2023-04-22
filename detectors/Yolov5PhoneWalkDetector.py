@@ -8,7 +8,7 @@ class YoloPhoneWalkDetector(Detector):
     def __init__(self, device):
         device  = select_device(device)
         self.detector = TargetsDetector(
-            weights='weights/yolov5/phoneWalkEp300.pt',
+            weights='weights/yolov5/phoneWalkEp400_class5.pt',
             device=device
         )
         super().__init__(self.detector.names)
