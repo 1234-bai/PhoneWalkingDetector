@@ -49,8 +49,7 @@ class TargetsDetector:
             im = torch.from_numpy(im).to(self.device)
             im = im.float()  # uint8 to fp16/32 
             im /= 255  # 0 - 255 to 0.0 - 1.0
-            if len(im.shape) == 3:
-                im = im[None]  # expand for batch dim
+            im = im[None]  # expand for batch dim
 
         # 预测
         with self.dt[1]:
@@ -78,6 +77,56 @@ class TargetsDetector:
 
         return results[0], results[1], results[2], self.dt[1].dt + self.dt[0].dt + self.dt[2].dt
     
+
+    def detectImages(
+        self, 
+        im0s,
+        conf_thres=0.5,  # confidence threshold 置信度阈值
+        # iou_thres=0.45,  # NMS IOU threshold 非极大值抑制的交并比阈值
+        classes=None,  # filter by class: --class 0, or --class 0 2 3 类别过滤器，只识别给出的类别编号，和配置文件中的类别编号相对应
+        max_det=1000,  # maximum detections per image 每张图片目标检测的最大数量
+    ):
+        ims = []
+        for im in im0s:
+            im = letterbox(im, self.imgsz, stride=self.stride, auto=False, scaleFill=True)[0]
+            im = im.transpose((2, 0, 1))[::-1] # HWC to CHW, BGR to RGB
+            ims.append(im)
+        ims = np.ascontiguousarray(np.array(ims))
+
+        # 图片像素点归一化
+        with self.dt[0]:
+            ims = torch.from_numpy(ims).to(self.device)
+            ims = ims.float()  # uint8 to fp16/32 
+            ims /= 255  # 0 - 255 to 0.0 - 1.0
+
+        # 预测
+        with self.dt[1]:
+            pred = self.model(ims)[0]
+
+        # NMS
+        with self.dt[2]:
+            pred = non_max_suppression(pred, conf_thres, iou_thres=0.45, classes = classes, agnostic = False, max_det=max_det)
+
+        results = []
+        # imc = im0.copy()  # for save_crop
+        for i, det  in enumerate(pred):   # per image，对于每张图片
+            # det : N * (x1, y1, x2, y2, conf, class)
+            result = ([], [], [])
+            if len(det):
+                # Rescale boxes from img_size to im0 size
+                det[:, :4] = scale_boxes(ims[i].shape[1:], det[:, :4], im0s[i].shape[1:]).round()
+
+                for *xyxy, conf, cls in reversed(det): # 对于每张图片的多个目标
+                    # crop = save_one_box(xyxy, imc, save=False, BGR=True)
+                    result[0].append(int(cls.cpu()))
+                    result[1].append(torch.tensor(xyxy).tolist())
+                    # results[2].append(crop)
+                    result[2].append(float(conf.cpu()))
+                    # results.append((c, torch.tensor(xyxy).tolist(), crop, conf))
+            results.append(result)
+
+        return results, self.dt[1].dt + self.dt[0].dt + self.dt[2].dt
+
     def getLabelName(self, c):
         return self.names[c]
 
