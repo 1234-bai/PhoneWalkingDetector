@@ -253,8 +253,14 @@ class LoadImages:
         self.vid_stride = vid_stride  # video frame-rate stride
         if any(videos):
             self._new_video(videos[0])  # new video
+            self.video_info = (
+                self.cap.get(cv2.CAP_PROP_FPS),
+                self.cap.get(cv2.CAP_PROP_FRAME_WIDTH),
+                self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            )
         else:
             self.cap = None
+            self.video_info = None
         assert self.nf > 0, f'No images or videos found in {p}. ' \
                             f'Supported formats are:\nimages: {IMG_FORMATS}\nvideos: {VID_FORMATS}'
 
@@ -294,7 +300,7 @@ class LoadImages:
             s = f'image {self.count}/{self.nf} {path}: '
 
 
-        return path, im0, self.cap, s
+        return path, im0, self.video_info, s
 
     def _new_video(self, path):
         # Create a new video capture object

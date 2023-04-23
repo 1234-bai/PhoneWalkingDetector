@@ -1,9 +1,11 @@
 import argparse
 import cv2
 from pathlib import Path
+import time
 
-from libs.yolov5 import increment_path, print_args, LOGGER, loadData, check_requirements
+from libs.yolov5 import increment_path, print_args, LOGGER, check_requirements
 from detectors.PhoneWalkDetector import PhoneWalkDetector
+from IO import DataWriter, DataReader, YoloFileWriter as FileWriter
 
 
 def saveCrop(saveDir, actionname, filename, crop):
@@ -12,28 +14,22 @@ def saveCrop(saveDir, actionname, filename, crop):
     assert(cv2.imwrite(cropPath, crop))
 
 
-def saveImageOrVeido(savePath, mode, img, videoWriter, videoCap, isNew):
-    '''
-        img : HWC, BGR
-    '''
-    if mode == 'image':
-        cv2.imwrite(savePath, img)
-    else:   # stream or vedio
-        if isNew: # 是一个新的视频或者第一个视频
-            if videoWriter is not None:
-                videoWriter.release() # release previous video writer
-                videoWriter = None
-            if videoCap: #video
-                fps = videoCap.get(cv2.CAP_PROP_FPS)
-                w = int(videoCap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                h = int(videoCap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            else:   # stream
-                fps, w, h = 30, img.shape[1], img.shape[0]
-            videoWriter = cv2.VideoWriter(str(savePath), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-        assert(videoWriter != None)
-        videoWriter.write(img) # 是前一个视频的下一帧
-        return videoWriter
+def saveCrops(item, saveDir, labels):
+    (crops, labelIds, filename) = item
+    for i, crop in enumerate(crops):
+        saveCrop(saveDir, labels[labelIds[i]], filename, crop)
 
+
+def viewImg(item, delay):
+    filename, img = item
+    cv2.imshow(filename, img)
+    cv2.waitKey(delay)
+
+
+def wait(writer, info = None):
+    while(writer.running()):
+        time.sleep(1)
+        if info is not None: LOGGER.info(info)
 
 def run(
     source,
@@ -49,7 +45,7 @@ def run(
 ):
     
     # load data
-    dataset = loadData(source=source,vid_stride=vid_stride)
+    dataset = DataReader(source=source,batch_size=1, vid_stride=vid_stride).start()
 
     # load detector
     pwd = PhoneWalkDetector(device)
@@ -58,30 +54,29 @@ def run(
     save = not nosave
     save_dir = increment_path(save_dir+'/'+name, exist_ok=exist_ok, mkdir=True) if save or save_crop else None
     preFilename = ''
-    videoWriter = None
+    if save_crop:
+        cropWriter = DataWriter(saveCrops).start(saveDir = save_dir, labels = pwd.class_names)
+    if save:
+        saveWriter = FileWriter().start()
+    if view_img:
+        viewWriter = DataWriter(viewImg).start(delay = 1)
 
     # time accumulator
     totalTime = 0.0
     capCount = 0
 
     # for per image or per frame(cap)
-    for path, im0s, vid_cap, infoStr in dataset:
+    while (datas := dataset.read()):
+        path, im0, vid_info, infoStr, mode = datas[0] # HWC , BGR
 
         # get filename without suffix and suffix
-        if dataset.mode == 'stream':
-            filename = path[0]
-            suffix = '.mp4'
-        else:
-            filename = Path(path).stem
-            suffix = Path(path).suffix
+        filename = Path(path).stem
+        suffix = Path(path).suffix
         if preFilename != (filename+suffix):
             isNew = True
             preFilename = filename+suffix
         else:
             isNew = False
-
-        # get original image
-        im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
 
         # time recorder
         capCount += 1
@@ -97,24 +92,29 @@ def run(
         totalTime += sum(times)
 
         if save_crop:
-            for i, crop in enumerate(crops):
-                saveCrop(save_dir, pwd.getLabel(labelIds[i]), filename, crop)
+            cropWriter.save((crops, labelIds, filename))
 
         # save image/video
         if save:
-            videoWriter = saveImageOrVeido(save_dir / (filename + suffix), dataset.mode, img, videoWriter, vid_cap, isNew)
+            # videoWriter = saveImageOrVeido(save_dir / (filename + suffix), dataset.mode, img, videoWriter, vid_info, isNew)
+            saveWriter.save(save_dir / (filename + suffix), mode, img, vid_info, isNew)
 
         # view image
         if view_img:  
-            cv2.imshow(filename, img)
-            if cv2.waitKey(-1) & 0xFF == ord('q'):
-                break
+            viewWriter.save((filename, img))
 
     # ending of for ---------------------------------------------------------------------------------
-
     LOGGER.info(f"{source}, total time: {totalTime:.1f}s, average process time: {totalTime / capCount * 1E3:.1f}ms")
+    if save_crop:
+        cropWriter.toEnd()
+        wait(cropWriter, 'Rendering remaining ' + str(cropWriter.count()) + ' crops in the queue...\n')
+    if save:
+        saveWriter.toEnd()
+        wait(saveWriter, 'saving...')
+    if view_img:
+        viewWriter.toEnd()
+        wait(viewWriter)
     if save or save_crop: LOGGER.info(f"results save to {save_dir}")
-
 
 
 def parse_opt():

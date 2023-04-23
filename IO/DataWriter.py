@@ -24,7 +24,7 @@ class DataWriter:
         self.queue.put(item)
 
     def read(self):
-        return self.queue.get()
+        return self.queue.get(timeout=1)
 
     def running(self):
         # indicate that the thread is still running
@@ -49,3 +49,6 @@ class DataWriter:
     def clear(self, queue):
         while not queue.empty():
             queue.get()
+    
+    def toEnd(self):
+        self.save(None)

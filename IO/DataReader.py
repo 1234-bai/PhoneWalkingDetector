@@ -24,7 +24,7 @@ class DataReader:
             if dataset.mode == 'stream':
                 path = path[0] + '.mp4'
                 im0s = im0s[0]
-            items.append((path, im0s, vid_info, infoStr))
+            items.append((path, im0s, vid_info, infoStr, dataset.mode))
             count += 1
             if count == self.batch_size:
                 self.queue.put(items.copy())
@@ -60,7 +60,4 @@ class DataReader:
         while not queue.empty():
             queue.get()
 
-    @property
-    def mode(self):
-        return self.mode
     
