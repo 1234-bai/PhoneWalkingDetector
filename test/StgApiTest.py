@@ -11,19 +11,24 @@ if str(ROOT) not in sys.path:
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, LOGGER, select_device, loadData
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
-from libs.st_gcn.TwoStreamStgcn import ActionEstimation
-from utils.PoseTransformer import coco2017Keypoints2CocoCut as Dt, toBoneboxCoord
+from libs.st_gcn.TwoStreamStgcn import ActionEstimation as StandAe
+from libs.st_gcn.StgcnApi import ActionEstimation as WalkAe
+from utils.PoseTransformer import coco2017Keypoints2CocoCut, nochange, toBoneboxCoord
 from utils.PointsUtils import xywh2xyxy
 
 
 device=select_device(0)
 
-ae = ActionEstimation(
-    # weight_file='libs/st_gcn/model/stgcn_class3_150_94_ex9.pt',
-    # class_names= ['no', 'one', 'two'],
-    # layout='Mscoco',
+model = 'walk'
+
+ae = WalkAe(
+    weight_file='weights/stgcn/stgcn_class3_150_94_ex9.pt',
+    class_names= ['no', 'one', 'two'],
+    layout='Mscoco',
     device=device
-)
+) if model == 'walk' else StandAe(device=device)
+
+Dt = nochange if model == 'walk' else coco2017Keypoints2CocoCut
 
 poseTest = SingleImagePoseEstimation(
     checkpoint='weights/alphapose/fast_res50_256x192.pth',
@@ -110,16 +115,16 @@ for path, im0s, vid_cap, s in dataset:
                     poseStore[id].append(vc)
                 except IndexError:
                     poseStore.append([vc])
-            for id,tvc in enumerate(poseStore):
+            for id,ntvc in enumerate(poseStore):
                 if id in existedPeo[0]:
                     actionName = 'pending'
-                    if len(tvc) >= 5:
-                        actionIndex, time = ae.predict(np.array(tvc), None, True)
+                    if len(ntvc) >= 5:
+                        actionIndex, time = ae.predict(np.array(ntvc), None, True)
                         aeTime += time
                         actionName = ae.getLabel(actionIndex)
                     annotator.box_label(existedPeo[1][id], label=str(id)+actionName, color=colors(0))
                 else:
-                    tvc.clear()
+                    ntvc.clear()
 
         
         im0 = annotator.result()
