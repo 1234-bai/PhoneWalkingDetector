@@ -25,19 +25,19 @@ from utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Keyp
 def loadModels(device):
     # people detector
     peoDt =  TargetsDetector(
-        weights='libs/yolov5/weights/yolov5s.pt',
+        weights='weights/yolov5/yolov5s.pt',
         device=device
     )
     # phone detector
     phoneDt= TargetsDetector(
-        weights='libs/yolov5/weights/phone_ep20.pt',
+        weights='weights/yolov5/phoneEp80.pt',
         device=device
     )
     # people pose estimation
     poseEstimation = SingleImagePoseEstimation(device=device)
     # action estimation of holding phone with hand(s) 
     phoneAe = PhoneActionEstimation(
-        weight_file='libs/st_gcn/model/stgcn_class3_150_94_ex9.pt',
+        weight_file='weights/stgcn/stgcn_class3_150_94_ex9.pt',
         class_names=['nohand', 'oneHand', 'twoHands'],
         device=device
     )
@@ -203,7 +203,7 @@ def run(
     capCount = 0
 
     # for per image or per frame(cap)
-    for path, _, im0s, vid_cap, infoStr in dataset:
+    for path, im0s, vid_cap, infoStr in dataset:
 
         # get filename without suffix and suffix
         if dataset.mode == 'stream':
