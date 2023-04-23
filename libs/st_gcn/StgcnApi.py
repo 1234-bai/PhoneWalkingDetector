@@ -51,6 +51,11 @@ class ActionEstimation():
         pts = [np.concatenate((keypoints, kp_scores), axis=1)] * copy_times     # 骨骼和置信度结合
         return self.predict(np.array(pts), image_size, normed)
     
+    def predictBatchCaps(self, kepoints_list, scores_list, image_size_list, normed = False, copy_times=30):
+        ntvc = [np.concatenate((kepoints_list, scores_list), axis=2)] * copy_times  # actually t,n,v,c
+        ntvc = np.array(ntvc).transpose((1, 0, 2, 3))   # n, t, v, c
+        return self.predictBatch(ntvc, image_size_list, normed)
+
     def predict(self, tvc, image_size, normed=False):
         """Predict actions from single person skeleton points and score in time sequence.
         Args:
@@ -76,6 +81,32 @@ class ActionEstimation():
         out = torch.softmax(out, 1)
         return out.numpy()[0], ptime
 
+    def predictBatch(self, ntvc, image_size_list, normed=False):
+        """Predict actions from single person skeleton points and score in time sequence.
+        Args:
+            tvc: (numpy array) points and score in shape `(t, v, c)` where
+                n : batch size (people number for once)
+                t : inputs sequence (time steps).,
+                v : number of graph node (body parts).,
+                c : channel (x, y, score).,
+            image_size_list: list of (width, height of image frame (tuple of int).
+        Returns:
+            (numpy array) Probability of each class actions.
+        """
+        if not normed:
+            for i,image_size in enumerate(image_size_list):
+                ntvc[i, :, :, :2] = normalize_points_with_size(ntvc[i, :, :, :2], image_size[0], image_size[1])
+
+        ntvc = torch.tensor(ntvc, dtype=torch.float32)
+        ntvc = ntvc.permute(0, 3, 1, 2)[:, :, :, :, None] # N,C,T,V,M
+
+        ptime = time.time()
+        ntvc = ntvc.to(self.device)
+        out = self.model(ntvc)
+        ptime = time.time() - ptime
+        out = out.detach().cpu()    # N X len(class_names)
+        out = torch.softmax(out, 1)
+        return out.numpy(), ptime
 
     def getLabel(self, model_out):
         assert(len(model_out) == self.count_class)
