@@ -17,6 +17,7 @@ input_dir = Path("datasets/yolodata/train_val/images")
 output_dir = Path('datasets/yolodata/train_val/labels')
 
 label_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Stand', 'Sit'] # 根据动作分类，而不是手机出现的位置
+label_map = [1, 1, 2, 0, 3]
 label_dir = [(output_dir / x) for x in label_names]
 for x in label_dir:
     x.mkdir(parents=True, exist_ok=True)
@@ -27,9 +28,8 @@ peopleDec =  TargetsDetector(
     device=device
 )
 
-
-for cls, label in enumerate(label_names):
-    # cls = i if i < 3 else 3
+for i, label in enumerate(label_names):
+    cls = label_map[i]
     dataset = loadData(source=input_dir / label)
     for path, im0, _, _ in tqdm(dataset, desc=label):
         # im0 = im0s # HWC
@@ -42,7 +42,7 @@ for cls, label in enumerate(label_names):
                 box[2:] /= wh
                 box[:2] /= wh
                 if box[2] > 0.6 and box[3] > 0.6:
-                    outputPath = label_dir[cls] / (Path(path).stem + ".txt")
+                    outputPath = label_dir[i] / (Path(path).stem + ".txt")
                     with outputPath.open('w') as f:
                         f.write(f"{cls} {box[0]:.6f} {box[1]:.6f} {box[2]:.6f} {box[3]:.6f}\n")
 

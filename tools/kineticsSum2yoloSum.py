@@ -28,8 +28,7 @@ def transform(
         with outputPath.open('w') as f:
             for filename in tqdm(inputSumDict, desc=part):
                 classStr = inputSumDict[filename]['label']
-                if classStr in ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Stand', 'Sit']:
-                    f.write(f'./images/{classStr}/{filename}.jpg\n')
+                f.write(f'./images/{classStr}/{filename}.jpg\n')
 
 
 if __name__ == '__main__':
