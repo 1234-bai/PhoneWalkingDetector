@@ -3,7 +3,7 @@ import numpy as np
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, save_one_box, select_device,Profile
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from libs.st_gcn.StgcnApi import ActionEstimation as PhoneActionEstimation
+from libs.st_gcn.StgcnApi import ActionEstimation as HandActionEstimation
 from libs.st_gcn.TwoStreamStgcn import ActionEstimation as StandActionEstimation
 from utils.PointsUtils import pointsAnyInBox, xywh2xyxy
 from utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Keypoints2CocoCut as co2cocut
@@ -33,7 +33,7 @@ class PhoneWalkDetector(Detector):
         # people pose estimation
         self.poseEstimation = SingleImagePoseEstimation(device=device)
         # action estimation of holding phone with hand(s) 
-        self.phoneAe = PhoneActionEstimation(
+        self.phoneAe = HandActionEstimation(
             weight_file='weights/stgcn/stgcn_class3_150_94_ex9.pt',
             class_names=['nohand', 'oneHand', 'twoHands'],
             device=device
