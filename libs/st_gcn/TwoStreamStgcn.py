@@ -29,7 +29,7 @@ class ActionEstimation():
         self.class_names = class_names
 
         self.model = Model(graph_args, self.count_class, edge_importance_weighting).to(device)
-        self.model.load_state_dict(torch.load(weight_file))
+        self.model.load_state_dict(torch.load(weight_file, map_location=device))
         self.model.eval()
         
     
