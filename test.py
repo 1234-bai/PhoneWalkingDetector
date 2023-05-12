@@ -7,19 +7,31 @@ from libs.yolov5 import (
         ConfusionMatrix, LoadImagesAndLabels, getCorrectPredictionMatrix, ap_per_class,
         increment_path, print_args, check_requirements, LOGGER
     )
-from detectors import PhoneAndWalkDetector, PhoneWalkDetector, YoloPhoneWalkDetector
+from detectors import (
+    PhoneAndWalkDetector, PhoneWalkDetector, YoloPhoneWalkDetector,
+    YoloPhoneActionEstimation
+)
+from detectors.StgcnActionEstimation import PhoneActionEstimation
 
 
 class Model:
     def __init__(self, model_type, device) -> None:
-        self.model_type = model_type
-        self.model =  (
-            YoloPhoneWalkDetector(device) if model_type == 'yolo' 
-            else (
-                PhoneWalkDetector(device) if model_type == 'pwd' 
-                else PhoneAndWalkDetector(device)
-            )
-        )
+        if model_type == 'yolo':
+            self.model = YoloPhoneWalkDetector(device)
+        elif model_type == 'pwd':
+            self.model = PhoneWalkDetector(device)
+        elif model_type == 'pawd':
+            self.model = PhoneAndWalkDetector(device, 2)
+        elif model_type == 'pawd_all':
+            self.model = PhoneAndWalkDetector(device, 1)
+        elif model_type == 'action_yolo':
+            self.model = YoloPhoneActionEstimation(device)
+        elif model_type == 'action_stgcn_single':
+            self.model = PhoneActionEstimation(device, 1)
+        elif model_type == 'action_stgcn_double':
+            self.model = PhoneActionEstimation(device, 2)
+        else:
+            raise
 
 
     def detectSingleImage(self, im0, conf_thres):
@@ -36,7 +48,8 @@ def run(
     images_path,
     save_dir,
     name,
-    classes = ['call', 'one', 'two', 'walk', 'other']
+    classes = ['call', 'one', 'two', 'walk', 'other'],
+    norm = False,
 ):
     dataset = LoadImagesAndLabels(images_path)
     pwd = Model(model_type, device=device)
@@ -85,7 +98,7 @@ def run(
         f.write(s+'\n')
 
     # plot ConfusionMatrix
-    cMatrix.plot(save_dir=save_dir, normalize=False, names=classes)
+    cMatrix.plot(save_dir=save_dir, normalize=norm, names=classes)
 
     LOGGER.info(f'results have be saved to {save_dir}')
 
@@ -94,8 +107,10 @@ def parse_opt():
     parser.add_argument('--images-path', type=str, default='datasets/yolodata/test/test.txt', help='path to images files/directory')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--model', default='pwd', dest = 'model_type',help='test modeltype, i.e. yolo or pwd')
+    parser.add_argument('--classes', nargs='+', type=str, default=['call', 'one', 'two', 'walk', 'other'], help='label names: --classes call walk')
     parser.add_argument('--save-dir', default='runs/test', help='save results to project/name')
     parser.add_argument('--name', default='exp_new_label_phoneWalk_nl', help='save results to project/name')
+    parser.add_argument('--norm', default=False, action='store_true', help='normalize confusion matrix')
     opt = parser.parse_args()
     print_args(vars(opt))
     return opt
