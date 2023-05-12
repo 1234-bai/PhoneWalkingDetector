@@ -140,7 +140,7 @@ color: rgb(218, 218, 218);
 </string>
             </property>
             <property name="text">
-             <string>YOLOv5 GUI</string>
+             <string>Phone Walking Detector</string>
             </property>
            </widget>
           </item>
@@ -1395,7 +1395,7 @@ color: rgb(218, 218, 218);
 </string>
                    </property>
                    <property name="text">
-                    <string>result statistics</string>
+                    <string>statistical results</string>
                    </property>
                   </widget>
                  </item>

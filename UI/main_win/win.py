@@ -1058,8 +1058,8 @@ class Ui_mainWindow(object):
 
     def retranslateUi(self, mainWindow):
         _translate = QtCore.QCoreApplication.translate
-        mainWindow.setWindowTitle(_translate("mainWindow", "YOLOv5检测界面"))
-        self.label_4.setText(_translate("mainWindow", "YOLOv5 GUI"))
+        mainWindow.setWindowTitle(_translate("mainWindow", "走路看手机行为检测"))
+        self.label_4.setText(_translate("mainWindow", "Phone Walking Detector"))
         self.label_5.setText(_translate("mainWindow", "setting"))
         self.label_3.setText(_translate("mainWindow", "model"))
         self.comboBox.setItemText(0, _translate("mainWindow", "yolov5s.pt"))
@@ -1075,6 +1075,6 @@ class Ui_mainWindow(object):
         self.label_8.setText(_translate("mainWindow", "latency"))
         self.checkBox.setText(_translate("mainWindow", "enable"))
         self.saveCheckBox.setText(_translate("mainWindow", "save automatically"))
-        self.label_11.setText(_translate("mainWindow", "result statistics"))
+        self.label_11.setText(_translate("mainWindow", "statistical results"))
         self.label_6.setText(_translate("mainWindow", "view"))
 
