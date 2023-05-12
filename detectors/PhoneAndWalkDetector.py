@@ -3,23 +3,22 @@ import numpy as np
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, save_one_box, select_device,Profile
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation
-from libs.st_gcn.StgcnApi import ActionEstimation as HandActionEstimation
-from libs.st_gcn.TwoStreamStgcn import ActionEstimation as StandActionEstimation
+from actionModels.StgcnAll import AllStgcn
+from actionModels.StgcnUpDown import UpDownStgcn
 from utils.PointsUtils import pointsAnyInBox, xywh2xyxy
-from utils.PoseTransformer import getBodyPartIndex, toBoneboxCoord, coco2017Keypoints2CocoCut as co2cocut
+from utils.PoseTransformer import getBodyPartIndex
 
 from Detector import Detector
 
 
 class PhoneWalkDetector(Detector):
 
-    def __init__(self, device = ''):
+    def __init__(self, device = '', model_type = 2):
         super().__init__(['call', 'playWithOneHand', 'playWithTwoHands', 'walking', 'other'])
         device = select_device(device)
-        self.__loadModels(device)
+        self.__loadModels(device, model_type)
 
-
-    def __loadModels(self, device):
+    def __loadModels(self, device, model_type):
         # people detector
         self.peoDt =  TargetsDetector(
             weights='weights/yolov5/yolov5s.pt',
@@ -32,80 +31,10 @@ class PhoneWalkDetector(Detector):
         )
         # people pose estimation
         self.poseEstimation = SingleImagePoseEstimation(device=device)
-        # action estimation of holding phone with hand(s) 
-        self.phoneAe = HandActionEstimation(
-            weight_file='weights/stgcn/stgcn_class3_150_94_ex9.pt',
-            class_names=['nohand', 'oneHand', 'twoHands'],
-            device=device
-        )
-        # action estimation of sitting and standing
-        self.walkAe = StandActionEstimation(device=device)
-
-
-    def __phoneWalkingAeOfSingleImage(self, keypoints, score, dt : Profile):
-        '''
-            phoneWalking Action Astimation Of Single Image
-            params:
-                keypoints: not normalizied skeleton keypoints
-                score : confidence of keypoints
-        '''
-        kp = toBoneboxCoord(co2cocut(keypoints, [17, 2]), norm=True) # normalizied keypoints according to skeletion box
-        walkingActionEstimation = self.walkAe
-        out, time = walkingActionEstimation.predictSingleCap(kp, co2cocut(score, [17,1]), None, normed=True)
-        dt.t += time
-        conf = [out[[0, 1, 4]].sum(), out[[2, 3, 5, 6]].sum()]  # conf: (walk, not walk)  
-        # sit = walkingActionEstimation.getLabel(out)
-        # if sit in ['Sitting', 'Lying Down', 'Sit down', 'Fall Down']:
-        #     return False, conf
-        
-        kp = toBoneboxCoord(keypoints, norm=True) - 0.5    # normalization and centralization
-        phoneActionEstimation = self.phoneAe
-        out, time = phoneActionEstimation.predictSingleCap(kp, score, None, normed=True) 
-        dt.t +=time
-        conf = [*(conf[0] * out), conf[1]]    # conf: (walking, play with one, play with two, other)
-        # phone = phoneActionEstimation.getLabel(phone)
-        # if phone == 'nohand':
-        #     return False
-        
-        return conf
-
-    def __phoneWalkingAeOfMultiCaps(self, tvc, dt : Profile):
-        '''
-            phoneWalking Action Astimation Of Multi Caps
-            params:
-                tvc:  points and score in shape `(t, v, c)` where
-                    t : inputs sequence (time steps).,
-                    v : number of graph node (body parts).,
-                    c : channel (x, y, score).
-                    
-        '''
-        tvc = np.array(tvc)
-
-        cococutTvc = []
-        for vc in tvc:
-            vc = co2cocut(vc, [17, 3])
-            vc[:,:2] = toBoneboxCoord(vc[:,:2], norm=True)
-            cococutTvc.append(vc)
-        walkingActionEstimation = self.walkAe
-        out, time = walkingActionEstimation.predict(np.array(cococutTvc), None, normed=True)
-        dt.t += time
-        conf = [out[1], 1 - out[1]]  # conf: (walk, not walk) 
-        # sit = walkingActionEstimation.getLabel(sit) 
-        # if sit in ['Sitting', 'Lying Down', 'Sit down', 'Fall Down']:
-        #     return False
-        
-        for i,vc in enumerate(tvc):
-            tvc[i][:,:2] = toBoneboxCoord(vc[:,:2], norm=True) - 0.5    # normalization and centralization
-        phoneActionEstimation = self.phoneAe
-        out, time = phoneActionEstimation.predict(tvc, None, normed=True)   
-        dt.t += time
-        conf = [*(conf[0] * out), conf[1]]    # conf: (walk, play with one, play with two, other)
-        # phone = phoneActionEstimation.getLabel(phone)
-        # if phone == 'nohand':
-        #     return False
-        
-        return conf
-
+        # action estimation of holding phone with hand(s)
+        models = [AllStgcn, UpDownStgcn]
+        self.phoneAe = models[model_type-1](device=device)
+    
     @staticmethod
     def phoneInHand(keypoints, poseFormat, phoneXyxy):
         wristpoints = keypoints[getBodyPartIndex(poseFormat, 'wrist')]
@@ -216,7 +145,7 @@ class PhoneWalkDetector(Detector):
                     keypoints = pose['keypoints'] # 获得此人的骨骼结点
                     score = pose['kp_score'] # 获得此人的骨骼结点置信度
                     boxConf = float(pose['proposal_score'].cpu())   # poeple pose conf
-                    pwConf = self.__phoneWalkingAeOfSingleImage(keypoints, score, dt[0]) # confidenece of phonewalking estimation   
+                    pwConf = self.phoneAe.predictSingleCap(keypoints, score, dt[0]) # confidenece of phonewalking estimation   
 
                     # (hold) phone detection
                     crop = save_one_box(peopleBox, im0, save=False, BGR=True)
@@ -252,7 +181,7 @@ class PhoneWalkDetector(Detector):
                     if id in existedPeo[0]:
                         if len(tvc) > 1:
                             # action estimation
-                            pwConf =  self.__phoneWalkingAeOfMultiCaps(tvc, dt[0])
+                            pwConf =  self.phoneAe.predictMultiCaps(tvc, dt[0])
                             # phone detection
                             peopleBox = existedPeo[1][id][0]
                             crop = save_one_box(peopleBox, im0, save=False, BGR=True)
