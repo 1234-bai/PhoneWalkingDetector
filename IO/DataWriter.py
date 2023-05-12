@@ -1,5 +1,5 @@
 
-import torch.multiprocessing as mp
+import multiprocessing as mp
 
 
 class DataWriter:

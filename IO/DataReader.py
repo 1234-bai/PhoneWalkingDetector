@@ -1,4 +1,4 @@
-import torch.multiprocessing as mp
+import multiprocessing as mp
 
 from libs.yolov5 import loadData
 
