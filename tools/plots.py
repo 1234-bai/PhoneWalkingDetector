@@ -11,7 +11,7 @@ def bar_fun(x, y, ax, color, label):
 
 def line_fun(x, y, ax, color, label):
     s = y.sum()
-    data = [1.0 * y[:i].sum() / s for i in range(len(x))]
+    data = [1.0 * y[:(i+1)].sum() / s for i in range(len(x))]
     ax.plot(x, data, color = color, linewidth=4, label=label)
     ax.legend()
 
@@ -19,17 +19,19 @@ def line_fun(x, y, ax, color, label):
 def drawWristAndEar_Single(wristExs, earExs, ax, ylabel):
     wristExs.sort()
     earExs.sort()
+    # print(f'{ylabel}:{wristExs.mean()},{wristExs.std()}')
+    # print(f'{ylabel}:{earExs.mean()},{earExs.std()}')
     x, y = np.unique(wristExs, return_counts=True)
     x = x[y > 3][1:]
     y = y[y > 3][1:]
     line_ax = [i.twinx() for i in ax]
-    bar_fun(x, y, ax[0], 'blue', 'wrist')
-    line_fun(x, y, line_ax[0], 'red', 'wrist')
+    bar_fun(x, y, ax[0], 'blue', 'frequency')
+    line_fun(x, y, line_ax[0], 'red', 'proportion of top n')
     x,y = np.unique(earExs, return_counts=True)
     x = x[y > 5][1:]
     y = y[y > 5][1:]
-    bar_fun(x, y, ax[1], 'blue', 'ear')
-    line_fun(x, y, line_ax[1], 'red', 'ear')
+    bar_fun(x, y, ax[1], 'blue', 'frequency')
+    line_fun(x, y, line_ax[1], 'red', 'proportion of top n')
     ax[0].set_ylabel(ylabel)
 
 def drawWristAndEar_Two(wristExs, earExs, bar_ax, line_ax, ylabel):
@@ -48,6 +50,8 @@ def drawWristAndEar_Two(wristExs, earExs, bar_ax, line_ax, ylabel):
     bar_ax[0].set_ylabel(ylabel)
     line_ax[0].set_ylabel(ylabel)
 
+label_map = ['call', 'playWithoneHand', 'playWithTwoHand', 'walk', 'other']
+
 def run(
     source_dir,
     class_files,
@@ -56,9 +60,9 @@ def run(
     source_dir = Path(source_dir)
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
-    save_path = str(save_dir / 'Phone.png')
+    save_path = str(save_dir / 'exten_no_0.png')
     count = len(class_files)
-    fig, ax = plt.subplots(count+1, 2, sharex=False, sharey=False, figsize=(18, 16))
+    fig, ax = plt.subplots(count+1, 2, sharex=False, sharey=False, figsize=(18, 12))
     total_wrists = []
     total_ears = []
     for i, cl in tqdm(enumerate(class_files)):
@@ -69,10 +73,13 @@ def run(
             earExs = np.array(list(map(float, data[3].split(' '))))
         total_wrists.append(wristExs)
         total_ears.append(earExs)
-        drawWristAndEar_Single(wristExs, earExs, ax[i], cl)
+        label = label_map[i]
+        drawWristAndEar_Single(wristExs, earExs, ax[i], label)
     total_wrists = np.concatenate(total_wrists, axis=0)
     total_ears = np.concatenate(total_ears, axis=0)
     drawWristAndEar_Single(total_wrists, total_ears, ax[count], 'total')
+    ax[count][0].set_xlabel('extension of wrist')
+    ax[count][1].set_xlabel('extension of ear')
     fig.savefig(save_path)
     plt.close(fig)
 
@@ -82,6 +89,6 @@ def run(
 if __name__ == '__main__':
     run(
         source_dir='runs/phone',
-        class_files=['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Stand', 'Sit', 'Other'],
+        class_files=['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Stand', 'Sit'],
         save_dir='runs/phone'
     )
