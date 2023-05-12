@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 
 from libs.yolov5 import increment_path, print_args, LOGGER, check_requirements
-from detectors.PhoneWalkDetector import PhoneWalkDetector
+from detectors import PhoneAndWalkDetector as PhoneWalkDetector
 from IO import DataWriter, DataReader, YoloFileWriter as FileWriter
 
 
@@ -59,7 +59,7 @@ def run(
     if save:
         saveWriter = FileWriter().start()
     if view_img:
-        viewWriter = DataWriter(viewImg).start(delay = 1)
+        viewWriter = DataWriter(viewImg).start(delay = -1)
 
     # time accumulator
     totalTime = 0.0
