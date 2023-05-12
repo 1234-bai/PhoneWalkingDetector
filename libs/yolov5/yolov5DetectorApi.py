@@ -22,7 +22,8 @@ class TargetsDetector:
         model = attempt_load(weights, device=device)
         model.float()
         self.stride=  max(int(model.stride.max()), 32)
-        self.names = model.module.names if hasattr(model, 'module') else model.names # stride表示的即是模型下采样次数的2的次方，这个涉及感受野的问题，在YOLOV5中下采样次数为5;names目标检测出的类别名字数组
+        names = model.module.names if hasattr(model, 'module') else model.names # stride表示的即是模型下采样次数的2的次方，这个涉及感受野的问题，在YOLOV5中下采样次数为5;names目标检测出的类别名字数组
+        self.names = [names[i] for i in names] if isinstance(names, dict) else names
         self.model = model
         self.imgsz = check_img_size(imgsz, s=self.stride)  # check image size
         self.device = device

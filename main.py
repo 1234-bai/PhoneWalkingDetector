@@ -16,8 +16,29 @@ from UI.utils.capnums import Camera
 from UI.dialog.rtsp_win import Window
 from UI.main_win.win import Ui_mainWindow
 from libs.yolov5 import loadData
-from detectors import PhoneWalkDetector, YoloPhoneWalkDetector
-from detect import saveImageOrVeido
+from detectors import PhoneWalkDetector as PhoneWalkDetector, YoloPhoneWalkDetector
+
+
+def saveImageOrVeido(savePath, mode, img, videoWriter, videoInfo, isNew):
+    '''
+        img : HWC, BGR
+    '''
+    if mode == 'image':
+        cv2.imwrite(savePath, img)
+    else:   # stream or vedio
+        if isNew: # 是一个新的视频或者第一个视频
+            if videoWriter is not None:
+                videoWriter.release() # release previous video writer
+                videoWriter = None
+            if videoInfo: #video
+                fps, w, h = videoInfo[:3]
+            else:   # stream
+                fps, w, h = 30, img.shape[1], img.shape[0]
+            print(f'{type(fps)},{type(w),type(h)}')
+            videoWriter = cv2.VideoWriter(str(savePath), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+        assert(videoWriter != None)
+        videoWriter.write(img) # 是前一个视频的下一帧
+    return videoWriter
 
 
 class DetThread(QThread):
@@ -79,7 +100,6 @@ class DetThread(QThread):
 
             while True:
                 if self.jump_out:
-                    self.vid_cap.release()
                     self.send_percent.emit(0)
                     self.send_msg.emit('Stop')
                     if self.out is not None : self.out.release()
@@ -93,7 +113,7 @@ class DetThread(QThread):
                 else:
                     model_changed = False
                 if self.is_continue:
-                    path, im0s, self.vid_cap, info_str = next(dataset)
+                    path, im0s, self.vid_info, info_str = next(dataset)
                     # get original image
                     im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
                             # get filename without suffix and suffix
@@ -117,14 +137,13 @@ class DetThread(QThread):
                         fps = int(30/(time.time()-start_time))
                         self.send_fps.emit('fps：'+str(fps))
                         start_time = time.time()
-                    if self.vid_cap:
-                        percent = int(count/self.vid_cap.get(cv2.CAP_PROP_FRAME_COUNT)*self.percent_length)
+                    if self.vid_info:
+                        percent = int(count/self.vid_info[3]*self.percent_length)
                         self.send_percent.emit(percent)
                     else:
                         percent = self.percent_length
 
                     statistic_dic = [0] * len(names)
-                    
                     labelIds, _, _, _, img, _ = model.detectSingleImage(im0, conf_thres=self.conf_thres, mode = 'image', isNew=isNew, line_thickness = line_thickness)
 
                     for lid in labelIds:
@@ -138,7 +157,7 @@ class DetThread(QThread):
                     if self.save_fold:
                         os.makedirs(self.save_fold, exist_ok=True)
                         save_path = os.path.join(self.save_fold,time.strftime('%Y_%m_%d_%H_%M_%S',time.localtime()) + suffix)
-                        self.out = saveImageOrVeido(save_path, dataset.mode, img, self.out, self.vid_cap, isNew)
+                        self.out = saveImageOrVeido(save_path, dataset.mode, img, self.out, self.vid_info, isNew)
                     if percent == self.percent_length:
                         print(count)
                         self.send_percent.emit(0)
@@ -340,8 +359,8 @@ class MainWindow(QMainWindow, Ui_mainWindow):
                 rate = config['rate']
                 check = config['check']
                 savecheck = config['savecheck']
-        self.confSpinBox.setValue(iou)
-        self.iouSpinBox.setValue(conf)
+        self.confSpinBox.setValue(conf)
+        self.iouSpinBox.setValue(iou)
         self.rateSpinBox.setValue(rate)
         self.checkBox.setCheckState(check)
         self.det_thread.rate_check = check
@@ -483,8 +502,8 @@ class MainWindow(QMainWindow, Ui_mainWindow):
         self.det_thread.jump_out = True
         config_file = 'UI/config/setting.json'
         config = dict()
-        config['iou'] = self.confSpinBox.value()
-        config['conf'] = self.iouSpinBox.value()
+        config['iou'] = self.iouSpinBox.value()
+        config['conf'] = self.confSpinBox.value()
         config['rate'] = self.rateSpinBox.value()
         config['check'] = self.checkBox.checkState()
         config['savecheck'] = self.saveCheckBox.checkState()
