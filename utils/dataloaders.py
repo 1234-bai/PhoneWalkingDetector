@@ -254,9 +254,10 @@ class LoadImages:
         if any(videos):
             self._new_video(videos[0])  # new video
             self.video_info = (
-                self.cap.get(cv2.CAP_PROP_FPS),
-                self.cap.get(cv2.CAP_PROP_FRAME_WIDTH),
-                self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                int(self.cap.get(cv2.CAP_PROP_FPS)),
+                int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+                int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
             )
         else:
             self.cap = None
