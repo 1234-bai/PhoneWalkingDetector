@@ -7,7 +7,18 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from PhoneWalkDetector import PhoneWalkDetector
-from Yolov5PhoneWalkDetector import YoloPhoneWalkDetector
+from YoloDetector import YoloDetector
 from PhoneAndWalkDetector import PhoneWalkDetector as PhoneAndWalkDetector
 
-__all__ = [PhoneWalkDetector, YoloPhoneWalkDetector, PhoneAndWalkDetector]
+class YoloPhoneWalkDetector(YoloDetector):
+    def __init__(self, device):
+        super().__init__(device, 'weights/yolov5/phoneWalk_yolo_ep500.pt')
+
+class YoloPhoneActionEstimation(YoloDetector):
+    def __init__(self, device):
+        super().__init__(device, 'weights/yolov5/action_yolo_ep500.pt')
+
+__all__ = [
+    PhoneWalkDetector, YoloPhoneWalkDetector, PhoneAndWalkDetector,
+    YoloPhoneActionEstimation,
+]

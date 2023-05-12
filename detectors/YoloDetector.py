@@ -3,12 +3,12 @@ from libs.yolov5 import colors, save_one_box, select_device
 
 from Detector import Detector
 
-class YoloPhoneWalkDetector(Detector):
+class YoloDetector(Detector):
 
-    def __init__(self, device):
+    def __init__(self, device, weights):
         device  = select_device(device)
         self.detector = TargetsDetector(
-            weights='weights/yolov5/phoneWalkEp400_class5.pt',
+            weights=weights,
             device=device
         )
         super().__init__(self.detector.names)
