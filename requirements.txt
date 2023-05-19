@@ -8,7 +8,7 @@ numpy>=1.18.5
 opencv-python>=4.1.1
 Pillow>=7.1.2
 psutil  # system resources
-# PyYAML>=5.3.1
+PyYAML>=5.3.1
 # requests>=2.23.0
 scipy>=1.4.1
 thop>=0.1.1  # FLOPs computation
@@ -38,14 +38,14 @@ seaborn>=0.11.0
 # openvino-dev  # OpenVINO export
 
 # Deploy ----------------------------------------------------------------------
-# setuptools>=65.5.1 # Snyk vulnerability fix
+setuptools>=65.5.1 # Snyk vulnerability fix
 # tritonclient[all]~=2.24.0
 
 # Extras ----------------------------------------------------------------------
 # ipython  # interactive notebook
 # mss  # screenshots
 # albumentations>=1.0.3
-# pycocotools>=2.0.6  # COCO mAP
+pycocotools>=2.0.6  # COCO mAP
 # roboflow
 # ultralytics  # HUB https://hub.ultralytics.com
 
@@ -60,6 +60,8 @@ easydict
 munkres
 timm==0.1.20
 natsort
+cython
+# cython_bbox # pip install -e git+https://github.com/samson-wang/cython_bbox.git#egg=cython-bbox
 
 # UI
 PyQt5 == 5.15.8
