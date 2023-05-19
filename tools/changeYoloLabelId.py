@@ -2,9 +2,9 @@ from pathlib import Path
 from tqdm import tqdm
 
 input_dir = Path('datasets\phoneData\project-3-at-2023-04-20-22-32-ba0bab70\labels')
+label_map = [0, 0, 0, 1, 2]
 class_map = {
-    '1' : '0',
-    '0' : '1'
+    str(i) : str(d) for i, d in enumerate(label_map)
 }
 
 

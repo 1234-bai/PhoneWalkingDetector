@@ -8,18 +8,12 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 
 from utils.PointsUtils import xywh2xyxy
-from libs.st_gcn.StgcnApi import ActionEstimation
 from libs.yolov5.yolov5DetectorApi import TargetsDetector, TargetsAnnotator
 from libs.yolov5 import colors, loadData, select_device
 from libs.Alphapose.AlphaposeApi import SingleImagePoseEstimation, AlphaposeDataTransformer as ADt
 
 
 device=select_device(0)
-ae = ActionEstimation(
-    weight_file='weights/stgcn/stgcn_class6_150_p90.pt',
-    class_names= ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'photo', 'Stand', 'other'],
-    layout='Mscoco'
-)
 
 poseTest = SingleImagePoseEstimation(
     device=device
@@ -29,7 +23,7 @@ test =  TargetsDetector(
     weights='weights/yolov5/yolov5s.pt',
     device=device
 )
-dataset = loadData(source='datasets/testdata/images/phone_walking.jpg')
+dataset = loadData(source='datasets/testdata/video/')
 
 
 for path, im0s, vid_cap, s in dataset:
@@ -57,6 +51,7 @@ for path, im0s, vid_cap, s in dataset:
         for i,pose in enumerate(poses): #   对于每个人像
             box = pose['bbox'] # xywh
             id = pose['idx']
+            # annotator.box_label(xywh2xyxy(box), label='people:'+str(round(float(pose['proposal_score']),2)), color=colors(0))
             annotator.box_label(xywh2xyxy(box), label=str(i)+','+str(id), color=colors(0))
             annotator2.box_label(peopleXyxyBoxes[i], label=str(i), color=colors(0))
 
