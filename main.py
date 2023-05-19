@@ -34,7 +34,7 @@ def saveImageOrVeido(savePath, mode, img, videoWriter, videoInfo, isNew):
                 fps, w, h = videoInfo[:3]
             else:   # stream
                 fps, w, h = 30, img.shape[1], img.shape[0]
-            print(f'{type(fps)},{type(w),type(h)}')
+            # print(f'{type(fps)},{type(w),type(h)}')
             videoWriter = cv2.VideoWriter(str(savePath), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
         assert(videoWriter != None)
         videoWriter.write(img) # 是前一个视频的下一帧
@@ -159,7 +159,7 @@ class DetThread(QThread):
                         save_path = os.path.join(self.save_fold,time.strftime('%Y_%m_%d_%H_%M_%S',time.localtime()) + suffix)
                         self.out = saveImageOrVeido(save_path, dataset.mode, img, self.out, self.vid_info, isNew)
                     if percent == self.percent_length:
-                        print(count)
+                        # print(count)
                         self.send_percent.emit(0)
                         self.send_msg.emit('finished')
                         if self.out is not None : self.out.release()

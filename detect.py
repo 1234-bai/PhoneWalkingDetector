@@ -135,7 +135,7 @@ def parse_opt():
 
 
 def main(opt):
-    # check_requirements(exclude=('tensorboard', 'thop'))
+    check_requirements(exclude=('tensorboard', 'thop'), install=False)
     run(**vars(opt))
 
 

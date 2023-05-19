@@ -14,7 +14,7 @@ class ActionEstimation():
 
     def __init__(
         self,
-        weight_file = 'libs/st_gcn/model/stgcn_class7.pt',
+        weight_file = 'weights/st_gcn/stgcn_class7.pt',
         class_names = ['Call', 'PlayWithOneHand', 'PlayWithTwoHands', 'Photograph', 'Stand', 'Sit', 'Other'],
         layout='Mscoco',
         device='cuda'
