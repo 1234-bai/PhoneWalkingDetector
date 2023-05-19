@@ -13,7 +13,7 @@
 
    ```shell
    cd Phone_Walking_Detector
-   pip install -r requirements
+   pip install -r requirements.txt
    ```
 
 3. Install cython_bbox
