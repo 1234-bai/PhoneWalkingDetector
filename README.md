@@ -22,7 +22,7 @@
    pip install -e git+https://github.com/samson-wang/cython_bbox.git#egg=cython-bbox
    ```
 
-   Then directory  `/src` come in to being. Change 12 and 13 lines of  `src\cython-bbox\src\cython_bbox.pyx`  to
+   Then directory  `/src` come into being. Change 12 and 13 lines of  `src\cython-bbox\src\cython_bbox.pyx`  to
 
    ```cython
    DTYPE = np.float64	# DTYPE = np.float
