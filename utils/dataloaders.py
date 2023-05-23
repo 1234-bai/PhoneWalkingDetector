@@ -335,6 +335,7 @@ class LoadStreams:
         n = len(sources)
         self.sources = [clean_str(x) for x in sources]  # clean source names for later
         self.imgs, self.fps, self.frames, self.threads = [None] * n, [0] * n, [0] * n, [None] * n
+        self.w, self.h = [0] * n, [0] * n
         for i, s in enumerate(sources):  # index, source
             # Start thread to read frames from video stream
             st = f'{i + 1}/{n}: {s}... '
@@ -352,14 +353,17 @@ class LoadStreams:
             w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = cap.get(cv2.CAP_PROP_FPS)  # warning: may return 0 or nan
+            self.w[i] = w
+            self.h[i] = h
             self.frames[i] = max(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), 0) or float('inf')  # infinite stream fallback
             self.fps[i] = max((fps if math.isfinite(fps) else 0) % 100, 0) or 30  # 30 FPS fallback
-
             _, self.imgs[i] = cap.read()  # guarantee first frame
             self.threads[i] = Thread(target=self.update, args=([i, cap, s]), daemon=True)
             LOGGER.info(f'{st} Success ({self.frames[i]} frames {w}x{h} at {self.fps[i]:.2f} FPS)')
             self.threads[i].start()
+        self.video_info= np.transpose(np.concatenate([[self.fps], [self.w], [self.h], [self.frames]], axis=0)).tolist()
         LOGGER.info('')  # newline
+        self.cap = cap
 
 
     def update(self, i, cap, stream):
@@ -390,7 +394,11 @@ class LoadStreams:
 
         im0 = self.imgs.copy()
 
-        return self.sources, im0, None, ''
+        return self.sources, im0, self.video_info, ''
+
+    def stop(self):
+        self.cap.release()
+        cv2.destroyAllWindows()
 
     def __len__(self):
         return len(self.sources)  # 1E12 frames = 32 streams at 30 FPS for 30 years

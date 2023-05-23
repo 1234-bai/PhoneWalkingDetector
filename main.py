@@ -103,6 +103,7 @@ class DetThread(QThread):
                     self.send_percent.emit(0)
                     self.send_msg.emit('Stop')
                     if self.out is not None : self.out.release()
+                    if dataset.mode == 'stream': dataset.stop()
                     break
                 # change model
                 if self.current_model_type != self.model_type:
@@ -113,12 +114,13 @@ class DetThread(QThread):
                 else:
                     model_changed = False
                 if self.is_continue:
-                    path, im0s, self.vid_info, info_str = next(dataset)
+                    path, im0, self.vid_info, info_str = next(dataset)
                     # get original image
-                    im0 = im0s[0] if dataset.mode == 'stream' else im0s # HWC , BGR
-                            # get filename without suffix and suffix
+                    # get filename without suffix and suffix
                     if dataset.mode == 'stream':
+                        im0 = im0[0]
                         filename = path[0]
+                        self.vid_info = self.vid_info[0]
                         suffix = '.mp4'
                     else:
                         filename = Path(path).stem
