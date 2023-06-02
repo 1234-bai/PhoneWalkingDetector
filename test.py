@@ -9,7 +9,8 @@ from libs.yolov5 import (
     )
 from detectors import (
     PhoneAndWalkDetector, PhoneWalkDetector, YoloPhoneWalkDetector,
-    YoloPhoneActionEstimation
+    YoloPhoneActionEstimation,
+    YoloPhoneDetector
 )
 from detectors.StgcnActionEstimation import PhoneActionEstimation
 
@@ -30,6 +31,8 @@ class Model:
             self.model = PhoneActionEstimation(device, 1)
         elif model_type == 'action_stgcn_double':
             self.model = PhoneActionEstimation(device, 2)
+        elif model_type == 'phone_yolo':
+            self.model = YoloPhoneDetector(device=device)
         else:
             raise
 

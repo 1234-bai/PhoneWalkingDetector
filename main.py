@@ -147,7 +147,8 @@ class DetThread(QThread):
 
                     statistic_dic = [0] * len(names)
                     labelIds, _, _, _, img, _ = model.detectSingleImage(im0, conf_thres=self.conf_thres, mode = 'image', isNew=isNew, line_thickness = line_thickness)
-
+                    # labelIds, _, _, _, img, _ = model.detectSingleImage(im0, conf_thres=self.conf_thres, mode = dataset.mode, isNew=isNew, line_thickness = line_thickness)
+                    
                     for lid in labelIds:
                         statistic_dic[lid] += 1
 
@@ -389,6 +390,8 @@ class MainWindow(QMainWindow, Ui_mainWindow):
             pass
 
     def statistic_msg(self, msg):
+        if len(msg) > 150:
+            msg = msg[:150]+'......'
         self.statistic_label.setText(msg)
         # self.qtimer.start(3000)
 

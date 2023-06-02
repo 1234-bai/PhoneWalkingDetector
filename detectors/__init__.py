@@ -18,7 +18,12 @@ class YoloPhoneActionEstimation(YoloDetector):
     def __init__(self, device):
         super().__init__(device, 'weights/yolov5/action_yolo_ep500.pt')
 
+class YoloPhoneDetector(YoloDetector):
+    def __init__(self, device):
+        super().__init__(device, 'weights/yolov5/phoneEx5.pt')
+
 __all__ = [
     PhoneWalkDetector, YoloPhoneWalkDetector, PhoneAndWalkDetector,
     YoloPhoneActionEstimation,
+    YoloPhoneDetector
 ]
