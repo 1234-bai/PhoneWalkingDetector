@@ -188,7 +188,7 @@ class ConfusionMatrix:
         return tp[:-1], fp[:-1]  # remove background class
 
     @TryExcept('WARNING ⚠️ ConfusionMatrix plot failure')
-    def plot(self, normalize=True, save_dir='', names=()):
+    def plot(self, normalize=True, save_dir='', names=(), font_size = 16):
         import seaborn as sn
 
         array = self.matrix / ((self.matrix.sum(0).reshape(1, -1) + 1E-9) if normalize else 1)  # normalize columns
@@ -196,7 +196,7 @@ class ConfusionMatrix:
 
         fig, ax = plt.subplots(1, 1, figsize=(12, 9), tight_layout=True)
         nc, nn = self.nc, len(names)  # number of classes, names
-        sn.set(font_scale=1.0 if nc < 50 else 0.8)  # for label size
+        sn.set(font_scale=1.6 if nc < 50 else 1.3)  # for label size
         labels = (0 < nn < 99) and (nn == nc)  # apply names to ticklabels
         ticklabels = (names + ['background']) if labels else 'auto'
         with warnings.catch_warnings():
@@ -205,17 +205,18 @@ class ConfusionMatrix:
                        ax=ax,
                        annot=nc < 30,
                        annot_kws={
-                           'size': 8},
+                           'size': font_size},
                        cmap='Blues',
                        fmt='.2f',
                        square=True,
                        vmin=0.0,
                        xticklabels=ticklabels,
                        yticklabels=ticklabels).set_facecolor((1, 1, 1))
-        ax.set_xlabel('True')
-        ax.set_ylabel('Predicted')
-        ax.set_title('Confusion Matrix')
-        fig.savefig(Path(save_dir) / 'confusion_matrix.png', dpi=250)
+        ax.set_xlabel('True', fontsize=font_size)
+        ax.set_ylabel('Predicted', fontsize=font_size)
+        ax.tick_params(labelsize=font_size-1)     #调整坐标轴数字大小
+        # ax.set_title('Confusion Matrix')
+        fig.savefig(Path(save_dir) / 'confusion_matrix.png', dpi=500)
         plt.close(fig)
 
     def print(self):
@@ -319,9 +320,9 @@ def wh_iou(wh1, wh2, eps=1e-7):
 
 
 @threaded
-def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
+def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=(), fontsize=16):
     # Precision-recall curve
-    fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6), tight_layout=True)
     py = np.stack(py, axis=1)
 
     if 0 < len(names) < 21:  # display per-class legend if < 21 classes
@@ -331,20 +332,21 @@ def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
         ax.plot(px, py, linewidth=1, color='grey')  # plot(recall, precision)
 
     ax.plot(px, py.mean(1), linewidth=3, color='blue', label='all classes %.3f mAP@0.5' % ap[:, 0].mean())
-    ax.set_xlabel('Recall')
-    ax.set_ylabel('Precision')
+    ax.set_xlabel('Recall', fontsize=fontsize)
+    ax.set_ylabel('Precision', fontsize=fontsize)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.legend(bbox_to_anchor=(1.04, 1), loc='upper left')
-    ax.set_title('Precision-Recall Curve')
-    fig.savefig(save_dir, dpi=250)
+    ax.tick_params(labelsize=fontsize-1)     #调整坐标轴数字大小
+    ax.legend(bbox_to_anchor=(1, 1), loc='upper right', fontsize=fontsize, frameon=False)
+    # ax.set_title('Precision-Recall Curve')
+    fig.savefig(save_dir, dpi=500)
     plt.close(fig)
 
 
 @threaded
-def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confidence', ylabel='Metric'):
+def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confidence', ylabel='Metric', fontsize=16):
     # Metric-confidence curve
-    fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6), tight_layout=True)
 
     if 0 < len(names) < 21:  # display per-class legend if < 21 classes
         for i, y in enumerate(py):
@@ -354,11 +356,12 @@ def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confi
 
     y = smooth(py.mean(0), 0.05)
     ax.plot(px, y, linewidth=3, color='blue', label=f'all classes {y.max():.2f} at {px[y.argmax()]:.3f}')
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel,fontsize=fontsize)
+    ax.set_ylabel(ylabel, fontsize=fontsize)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.legend(bbox_to_anchor=(1.04, 1), loc='upper left')
+    ax.tick_params(labelsize=fontsize-1)     #调整坐标轴数字大小
+    ax.legend(bbox_to_anchor=(0.04, 0.04), loc='lower left', fontsize=fontsize, frameon=False)
     ax.set_title(f'{ylabel}-Confidence Curve')
-    fig.savefig(save_dir, dpi=250)
+    fig.savefig(save_dir, dpi=500)
     plt.close(fig)
