@@ -16,7 +16,7 @@ from UI.utils.capnums import Camera
 from UI.dialog.rtsp_win import Window
 from UI.main_win.win import Ui_mainWindow
 from libs.yolov5 import loadData
-from detectors import PhoneWalkDetector as PhoneWalkDetector, YoloPhoneWalkDetector
+from detectors import PhoneWalkDetector, PhoneAndWalkDetector, YoloPhoneWalkDetector
 
 
 def saveImageOrVeido(savePath, mode, img, videoWriter, videoInfo, isNew):
@@ -70,6 +70,10 @@ class DetThread(QThread):
             if not hasattr(self, 'yoloDetector'):
                 self.yoloDetector = YoloPhoneWalkDetector(self.device)
             model =  self.yoloDetector
+        elif model_type == 'old':
+            if not hasattr(self, 'pwdDetector'):
+                self.pwdDetector = PhoneAndWalkDetector(self.device)
+            model = self.pwdDetector
         else:
             if not hasattr(self, 'qianDetector'):
                 self.qianDetector = PhoneWalkDetector(self.device)
@@ -199,13 +203,13 @@ class MainWindow(QMainWindow, Ui_mainWindow):
         self.qtimer.timeout.connect(lambda: self.statistic_label.clear())
 
         # search models automatically
-        self.comboBox.clear()
-        self.pt_list = ['default', 'yolo']
+        # self.comboBox.clear()
+        self.pt_list = ['default', 'yolo', 'old']
         self.comboBox.clear()
         self.comboBox.addItems(self.pt_list)
-        self.qtimer_search = QTimer(self)
-        self.qtimer_search.timeout.connect(lambda: self.search_pt())
-        self.qtimer_search.start(2000)
+        # self.qtimer_search = QTimer(self)
+        # self.qtimer_search.timeout.connect(lambda: self.search_pt())
+        # self.qtimer_search.start(2000)
 
         # yolov5 thread
         self.det_thread = DetThread()
@@ -240,7 +244,7 @@ class MainWindow(QMainWindow, Ui_mainWindow):
         self.load_setting()
 
     def search_pt(self):
-        pt_list = ['default', 'yolo']
+        pt_list = ['default', 'yolo', 'old']
 
         if pt_list != self.pt_list:
             self.pt_list = pt_list
