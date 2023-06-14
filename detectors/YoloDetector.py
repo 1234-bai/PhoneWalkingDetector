@@ -16,11 +16,11 @@ class YoloDetector(Detector):
     def detectSingleImage(self, im0, conf_thres, mode = 'image', isNew = True, line_thickness = 2):
         cls, targetBoxes, confs, time = self.detector.detectSingleImage(im0, conf_thres)
         crops = []
-        img = im0
+        img = im0.copy()
         if len(targetBoxes):
-            annotator = TargetsAnnotator(im0, 2)
+            annotator = TargetsAnnotator(img, 2)
             for i, box in enumerate(targetBoxes):
                 annotator.box_label(box, self.detector.getLabelName(cls[i])+str(round(float(confs[i]), 2)), colors(i))
-                crops.append(save_one_box(box, im0, save=False, BGR=True))
+                crops.append(save_one_box(box, img, save=False, BGR=True))
             img = annotator.result()
         return cls, targetBoxes, confs, crops, img, [time, 0, 0, 0]
